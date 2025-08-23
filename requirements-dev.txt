@@ -6,3 +6,5 @@ ruff
 mypy
 pre-commit
 python-dotenv
+pytest-cov>=5.0.0
+pytest-cov>=5.0.0
