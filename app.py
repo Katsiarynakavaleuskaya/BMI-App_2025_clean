@@ -37,7 +37,7 @@ def category_by_bmi(bmi: float, lang: str = "ru") -> str:
     if bmi < 25:
         return "Норма" if lang == "ru" else "Healthy weight"   # <- was "Normal"
     if bmi < 30:
-        return "Избыточная масса" if lang == "ru" else "Overweight"
+        return "Избыточный вес" if lang == "ru" else "Overweight"
     return "Ожирение" if lang == "ru" else "Obesity"
 
 
@@ -122,6 +122,8 @@ def plan_endpoint(req: BMIRequest):
             "premium": bool(req.premium),
             "next_steps": ["Шаги: 7–10 тыс/день", "Белок: 1.2–1.6 г/кг", "Сон: 7–9 часов"],
             "healthy_bmi": healthy_bmi,
+    "action": "Take a brisk 20-min walk today",
+    "action": "Сделай сегодня 20-мин быструю прогулку",
         }
         if req.premium:
             base["premium_reco"] = ["Дефицит 300–500 ккал", "2–3 силовые тренировки/нед"]
@@ -133,6 +135,8 @@ def plan_endpoint(req: BMIRequest):
             "premium": bool(req.premium),
             "next_steps": ["Steps: 7–10k/day", "Protein: 1.2–1.6 g/kg", "Sleep: 7–9 h"],
             "healthy_bmi": healthy_bmi,
+    "action": "Take a brisk 20-min walk today",
+    "action": "Сделай сегодня 20-мин быструю прогулку",
         }
         if req.premium:
             base["premium_reco"] = ["Calorie deficit 300–500 kcal", "2–3 strength sessions/week"]
