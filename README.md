@@ -1,3 +1,7 @@
+[![CI](https://github.com/Katsiarynakavaleuskaya/BMI-App_2025_clean/actions/workflows/python-tests.yml/badge.svg)](https://github.com/Katsiarynakavaleuskaya/BMI-App_2025_clean/actions)
+[![codecov](https://codecov.io/gh/Katsiarynakavaleuskaya/BMI-App_2025_clean/branch/main/graph/badge.svg)](https://codecov.io/gh/Katsiarynakavaleuskaya/BMI-App_2025_clean)
+
+
 # BMI-App Core (RU/EN)
 
 Чистая доменная логика BMI + WHtR с тестами.
