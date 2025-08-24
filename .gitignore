@@ -11,3 +11,5 @@ __pycache__/
 *.pyc
 uvicorn.log
 .uvicorn.pid
+uvicorn.log
+.uvicorn.pid
