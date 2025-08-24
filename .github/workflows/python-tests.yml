@@ -34,3 +34,9 @@ jobs:
 
       - name: Run tests
         run: pytest --cov-report=term-missing --cov-report=xml -q
+
+      - name: Upload coverage.xml
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
