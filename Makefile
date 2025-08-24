@@ -15,3 +15,10 @@ kill:
 
 health:
 	curl -s http://127.0.0.1:8001/health && echo
+
+# Останавливает все процессы uvicorn на 8001 порту
+stop:
+	@echo "Stopping uvicorn on port 8001..."
+	@lsof -ti :8001 | xargs -r kill -9 || true
+
+

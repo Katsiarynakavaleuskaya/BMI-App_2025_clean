@@ -9,3 +9,5 @@ __pycache__/
 .venv/
 __pycache__/
 *.pyc
+uvicorn.log
+.uvicorn.pid
