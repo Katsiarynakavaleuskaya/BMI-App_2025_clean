@@ -1,17 +1,30 @@
-# RU: Заглушка для Grok 2.5 — без реального вызова модели
-# EN: Placeholder for Grok 2.5 — no real model call
-import os
+from typing import Optional
+from openai import OpenAI
 
 class GrokProvider:
+    """
+    Минималистичный провайдер к x.ai (Grok) через совместимый OpenAI SDK.
+    Совместим с вызовом из llm.py:
+        GrokProvider(endpoint=..., model=..., api_key=...)
+    """
     name = "grok"
 
-    def __init__(self):
-        self.model = os.getenv("GROK_MODEL", "grok-2.5")
-        self.endpoint = os.getenv("GROK_ENDPOINT", "http://localhost:11434")
-        # RU: Здесь позже добавим реальный клиент/SDK
-        # EN: Later we will add real client/SDK here
+    def __init__(self, endpoint: str, model: str, api_key: str, timeout: Optional[float] = 30.0):
+        self.endpoint = endpoint.rstrip("/")
+        self.model = model
+        self.api_key = api_key
+        # создаём клиента (OpenAI совместимый эндпоинт у x.ai)
+        self.client = OpenAI(base_url=self.endpoint, api_key=self.api_key)
+        self.timeout = timeout
 
     def generate(self, text: str) -> str:
-        # RU: Плейсхолдер-ответ (чтобы не тянуть зависимостей)
-        # EN: Placeholder response (no external deps)
-        return f"[{self.name}:{self.model}] Insight: {text[:120]}"
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": text}],
+                timeout=self.timeout,
+            )
+            return resp.choices[0].message.content.strip()
+        except Exception as e:
+            # Пробрасываем понятную ошибку наверх — FastAPI вернёт 500 с этим текстом
+            raise RuntimeError(f"Grok error: {type(e).__name__}: {e}")

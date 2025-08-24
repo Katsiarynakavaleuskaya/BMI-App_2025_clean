@@ -4,6 +4,8 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field, model_validator
 from typing import Literal, Optional, Dict
 from dotenv import load_dotenv
+from llm import get_provider_with_fallback as get_provider
+
 
 # Загружаем .env
 load_dotenv()
@@ -191,5 +193,6 @@ def debug_env():
         "GROK_MODEL": os.getenv("GROK_MODEL", ""),
         "GROK_ENDPOINT": os.getenv("GROK_ENDPOINT", ""),
     }
-    data["insight_enabled"] = str(os.getenv("FEATURE_INSIGHT", "")).strip().lower() in {"1", "true", "yes", "on"}
+    data["insight_enabled"] = str(str(os.getenv("FEATURE_INSIGHT", "")).strip().lower() in {"1", "true", "yes", "on"})
     return JSONResponse(content=data)
+
