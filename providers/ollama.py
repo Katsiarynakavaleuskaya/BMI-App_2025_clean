@@ -1,16 +1,37 @@
-from openai import OpenAI
+from __future__ import annotations
+import os
+import httpx
+from . import ProviderBase
 
-class OllamaProvider:
+class OllamaProvider(ProviderBase):
     name = "ollama"
 
-    def __init__(self, base_url: str, model: str, api_key: str = ""):
-        self.model = model
-        self.client = OpenAI(base_url=base_url, api_key=api_key or "ollama-no-key")
+    def __init__(self, endpoint: str | None = None, model: str | None = None, api_key: str | None = None):
+        # api_key не используется (совместимость интерфейса)
+        self.endpoint = endpoint or os.getenv("OLLAMA_ENDPOINT", "http://localhost:11434")
+        self.model = model or os.getenv("OLLAMA_MODEL", "llama3.1:8b")
+        self.client = httpx.Client(base_url=self.endpoint, timeout=30.0)
 
-    def generate(self, text: str):
-        resp = self.client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "user", "content": text}],
-            temperature=0.2,
-        )
-        return resp.choices[0].message.content.strip()
+    def generate(self, text: str) -> str:
+        try:
+            r = self.client.post(
+                "/api/chat",
+                json={
+                    "model": self.model,
+                    "messages": [{"role": "user", "content": text}],
+                    "stream": False,
+                },
+            )
+            r.raise_for_status()
+            data = r.json()
+            # Разные форматы ответа у Ollama:
+            if isinstance(data, dict):
+                if "message" in data and isinstance(data["message"], dict):
+                    return (data["message"].get("content") or "").strip()
+                if "choices" in data and data["choices"]:
+                    return (data["choices"][0]["message"]["content"] or "").strip()
+                if "response" in data:  # старые/иные реализации
+                    return (data["response"] or "").strip()
+            return str(data)
+        except Exception as e:
+            raise RuntimeError(f"Ollama error: {type(e).__name__}: {e}")
