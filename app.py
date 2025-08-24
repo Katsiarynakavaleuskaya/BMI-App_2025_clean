@@ -142,3 +142,38 @@ def plan_endpoint(req: BMIRequest):
             base["premium_reco"] = ["Calorie deficit 300–500 kcal", "2–3 strength sessions/week"]
 
     return base
+from fastapi import Response
+
+@app.get("/favicon.ico")
+def favicon():
+    # RU: Пустой ответ, чтобы не было 404 в логах
+    # EN: Empty favicon to avoid 404 noise
+    return Response(status_code=204)
+
+# ---------- Insight (feature-flagged) ----------
+from pydantic import BaseModel, Field
+
+class InsightRequest(BaseModel):
+    # RU: Текст, по которому хотим получить инсайт
+    # EN: Text to generate insight for
+    text: str = Field(..., min_length=1, max_length=2000)
+
+@app.post("/insight")
+def insight(req: InsightRequest):
+    # RU: Импортируем локально, чтобы не менять верхние импорты
+    # EN: Local imports to avoid touching header imports
+    from fastapi import HTTPException
+    import os
+    from llm import get_provider
+
+    # RU: Фича доступна только если включён флаг FEATURE_INSIGHT
+    # EN: Feature is available only if FEATURE_INSIGHT is enabled
+    if os.getenv("FEATURE_INSIGHT", "0").lower() not in {"1", "true", "on", "yes"}:
+        raise HTTPException(status_code=503, detail="FEATURE_INSIGHT is disabled")
+
+    provider = get_provider()
+    if provider is None:
+        raise HTTPException(status_code=503, detail="No LLM provider configured. Set LLM_PROVIDER=stub|grok")
+
+    insight_text = provider.generate(req.text)
+    return {"provider": provider.name, "insight": insight_text}
