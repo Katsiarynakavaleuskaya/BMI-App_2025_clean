@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field, model_validator
 from typing import Literal, Optional, Dict
 from dotenv import load_dotenv
-from llm import get_provider_with_fallback as get_provider
+from llm import get_provider
 
 
 # Загружаем .env
