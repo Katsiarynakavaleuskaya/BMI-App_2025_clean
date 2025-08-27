@@ -55,11 +55,11 @@ tunnel-url:
 	@grep -o 'https://[a-zA-Z0-9.-]*\.loca\.lt' tunnel.out | tail -n 1 || echo "no url yet"
 
 smoke-ext:
-	@URL="$(MAKE) -s tunnel-url"; \
-	if [ "$$URL" = "no url yet" ] || [ -z "$$URL" ]; then echo "no tunnel url"; exit 1; fi; \
-	echo "$$URL/health"; \
+	@URL="$$(make -s tunnel-url)"; \
+	if [ "$$URL" = "no url yet" ]; then echo "no tunnel url"; exit 1; fi; \
+	echo "Testing API at $$URL"; \
 	curl -s "$$URL/health" || echo "health failed"; \
 	curl -s -X POST "$$URL/bmi" \
-	-H "Content-Type: application/json" \
-	-d '{"height_m":1.70,"weight_kg":65,"age":28,"gender":"female","pregnant":"no","athlete":"no","user_group":"general","language":"en"}' \
-	|| echo "bmi failed"
+	  -H "Content-Type: application/json" \
+	  -d '{"height_m":1.70,"weight_kg":65,"age":28,"gender":"female","pregnant":"no","athlete":"no","user_group":"general","language":"en"}' \
+	  || echo "bmi failed"
