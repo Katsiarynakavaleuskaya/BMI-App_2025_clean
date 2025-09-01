@@ -14,16 +14,16 @@ src = p.read_text(encoding="utf-8")
 
 changed = False
 
-def ensure(line: str):
-    global src, changed
+def ensure(line: str, src: str, changed: bool):
     if line not in src:
         src = line + "\n" + src
         changed = True
+    return src, changed
 
 # Импорты и наличие app
-ensure("from fastapi import FastAPI")
-ensure("from fastapi import HTTPException, Header, Depends")  # уже может быть
-ensure("from pydantic import BaseModel")  # уже может быть
+src, changed = ensure("from fastapi import FastAPI", src, changed)
+src, changed = ensure("from fastapi import HTTPException, Header, Depends", src, changed)  # уже может быть
+src, changed = ensure("from pydantic import BaseModel", src, changed)  # уже может быть
 if "app = FastAPI(" not in src:
     src += "\n\napp = FastAPI(title='BMI-App_2025')\n"
     changed = True
