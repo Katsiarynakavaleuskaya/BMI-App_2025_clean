@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 try:  # Gracefully skip if Hypothesis is not installed locally
-    from hypothesis import assume, given
+    from hypothesis import HealthCheck, assume, given, settings
     from hypothesis import strategies as st
 except Exception as exc:  # pragma: no cover
     pytest.skip(f"Hypothesis not available: {exc}", allow_module_level=True)
@@ -154,6 +154,7 @@ def test_api_bmi_property(weight, height):
 
 
 @given(text=st.text(min_size=1, max_size=100))
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
 def test_api_insight_property(monkeypatch, text):
     """Test /api/v1/insight endpoint with random text inputs."""
     monkeypatch.setattr(llm, "get_provider", lambda: _StubProvider())
