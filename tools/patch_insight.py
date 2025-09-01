@@ -25,9 +25,9 @@ def ensure_import(line: str):
 # Импорты
 ensure_import("import os")
 if "import llm" not in src:
-    # вставим рядом с другими import
-    m = re.search(r"(^|\n)(?:from\s+\S+\s+import\s+\S+|import\s+\S+)(?:.*\n)+", src)
-    if m:
+    if m := re.search(
+        r"(^|\n)(?:from\s+\S+\s+import\s+\S+|import\s+\S+)(?:.*\n)+", src
+    ):
         src = src[:m.end()] + "import llm\n" + src[m.end():]
     else:
         ensure_import("import llm")
