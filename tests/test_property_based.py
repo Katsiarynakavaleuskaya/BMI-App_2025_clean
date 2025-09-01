@@ -55,6 +55,7 @@ def test_bmi_value_property(weight, height):
     bmi = bmi_value(weight, height)
     assert bmi > 0
     # For reasonable inputs, BMI should be reasonable
+# sourcery skip: no-conditionals-in-tests
     if weight < 300 and height > 0.5:
         assert bmi < 2000  # Upper bound for extreme but possible cases
 
@@ -70,6 +71,7 @@ def test_bmi_category_property(bmi_val, lang):
         "Underweight", "Healthy weight", "Overweight", "Obesity",
         "Недовес", "Нормальный вес", "Избыточный вес", "Ожирение"
     ]
+# sourcery skip: no-conditionals-in-tests
     if bmi_val < 18.5:
         assert category in ["Underweight", "Недовес"]
     elif bmi_val < 25:
@@ -92,6 +94,7 @@ def test_bf_deurenberg_property(bmi, age, gender):
     # Body fat percentage can be negative or >50 in extreme cases
     assert isinstance(bf, float)
     # For reasonable inputs, bf should be reasonable
+# sourcery skip: no-conditionals-in-tests
     if 15 <= bmi <= 40 and 18 <= age <= 80:
         assert -5 <= bf <= 65
 
@@ -111,6 +114,7 @@ def test_bf_us_navy_property(height_cm, neck_cm, waist_cm, gender, hip_cm):
     # Body fat can be negative or >50 in invalid cases, but for valid, check
     assert isinstance(bf, float)
     # For reasonable inputs, bf should be reasonable
+# sourcery skip: no-conditionals-in-tests
     if waist_cm > neck_cm and height_cm > 100:
         assert -50 <= bf <= 150
 
@@ -128,6 +132,7 @@ def test_bf_ymca_property(weight_kg, waist_cm, gender):
     # Body fat can be negative or >50 in extreme cases
     assert isinstance(bf, float)
     # For reasonable inputs, bf should be reasonable
+# sourcery skip: no-conditionals-in-tests
     if weight_kg > 30 and waist_cm > 50:
         assert -50 <= bf <= 200
 
@@ -191,6 +196,7 @@ def test_api_bodyfat_property(weight, height, age, gender, waist, hip, neck):
     }
     response = client.post("/api/v1/bodyfat", json=request_data)
     assert response.status_code in [200, 422]  # 200 for valid, 422 for invalid
+# sourcery skip: no-conditionals-in-tests
     if response.status_code == 200:
         data = response.json()
         assert "methods" in data  # Correct key

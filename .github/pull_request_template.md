@@ -1,4 +1,4 @@
-## Summary
+# Summary
 
 Briefly describe the change and motivation.
 
@@ -12,4 +12,3 @@ Briefly describe the change and motivation.
 ## Notes
 
 Link related issue(s), PR(s), or context.
-
