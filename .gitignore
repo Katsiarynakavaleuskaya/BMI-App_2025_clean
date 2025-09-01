@@ -27,3 +27,7 @@ tunnel.out
 *.log
 *.bak
 *.backup
+
+# local artifacts
+.hypothesis/
+releases/
