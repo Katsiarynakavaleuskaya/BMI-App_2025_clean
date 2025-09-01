@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from hypothesis import assume, given
 from hypothesis import strategies as st
+from hypothesis import settings, HealthCheck
 
 try:
     from app import app as fastapi_app  # type: ignore
@@ -150,6 +151,7 @@ def test_api_bmi_property(weight, height):
 
 
 @given(text=st.text(min_size=1, max_size=100))
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
 def test_api_insight_property(monkeypatch, text):
     """Test /api/v1/insight endpoint with random text inputs."""
     monkeypatch.setattr(llm, "get_provider", lambda: _StubProvider())
