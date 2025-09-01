@@ -126,7 +126,9 @@ def test_healthy_bmi_ranges_adult_elderly_sport():
 def test_build_premium_plan_maintain():
     # Подберём вес в «здоровом» диапазоне, чтобы действие было maintain
     height = 1.75
-    bmin, bmax = healthy_bmi_range(30, "general", premium=False)  # (18.5, 25.0)
+    bmin, bmax = healthy_bmi_range(
+        30, "general", premium=False
+    )  # (18.5, 25.0)
     wmin = round(bmin * height * height, 1)  # ~56.6
     wmax = round(bmax * height * height, 1)  # ~76.6
     weight = (wmin + wmax) / 2
@@ -138,7 +140,9 @@ def test_build_premium_plan_maintain():
 
 def test_build_premium_plan_lose():
     height = 1.70
-    bmin, bmax = healthy_bmi_range(35, "general", premium=False)  # (18.5, 25.0)
+    bmin, bmax = healthy_bmi_range(
+        35, "general", premium=False
+    )  # (18.5, 25.0)
     wmax = round(bmax * height * height, 1)
     weight = wmax + 5.0  # выше «здорового» → нужно снижать
     bmi = bmi_value(weight, height)
@@ -150,7 +154,9 @@ def test_build_premium_plan_lose():
 
 def test_build_premium_plan_gain():
     height = 1.60
-    bmin, bmax = healthy_bmi_range(25, "general", premium=False)  # (18.5, 25.0)
+    bmin, bmax = healthy_bmi_range(
+        25, "general", premium=False
+    )  # (18.5, 25.0)
     wmin = round(bmin * height * height, 1)
     weight = wmin - 3.0  # ниже «здорового» → нужно набирать
     bmi = bmi_value(weight, height)

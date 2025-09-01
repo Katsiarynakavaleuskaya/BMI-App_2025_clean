@@ -3,16 +3,6 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-import pathlib
-import sys
-
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
-
-import pathlib
-import sys
-
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
-
 # -*- coding: utf-8 -*-
 """Edge-тесты для доведения покрытия до ~100%."""
 from bmi_core import (
@@ -40,7 +30,8 @@ def test_interpret_group_general_ru_no_note():
 
 def test_auto_group_regex_phrase_sportswoman():
     # Слово внутри фразы, не точное совпадение -> сработает regex
-    assert auto_group(30, "жен", "нет", "я спортсменка, хожу в зал", "ru") == "athlete"
+    phrase = "я спортсменка, хожу в зал"
+    assert auto_group(30, "жен", "нет", phrase, "ru") == "athlete"
 
 
 def test_auto_group_pregnant_en():
@@ -75,7 +66,8 @@ def test_healthy_bmi_range_athlete_premium_raise():
 
 def test_premium_plan_maintain_has_none_weeks():
     height = 1.75
-    # Подберём вес в «здоровом» диапазоне, чтобы action=maintain и est_weeks=(None, None)
+    # Подберём вес в «здоровом» диапазоне, чтобы action=maintain
+    # и est_weeks=(None, None)
     bmin, bmax = healthy_bmi_range(30, "general", premium=False)
     wmin = round(bmin * height * height, 1)
     wmax = round(bmax * height * height, 1)

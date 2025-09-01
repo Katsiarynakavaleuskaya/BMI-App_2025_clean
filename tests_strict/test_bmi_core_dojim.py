@@ -3,18 +3,9 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-import pathlib
-import sys
-
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
-
-import pathlib
-import sys
-
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
-
 # -*- coding: utf-8 -*-
-"""Маленькие edge-тесты, которые добивают покрытие до ~99–100% при нашей версии ядра."""
+"""Маленькие edge-тесты, которые добивают покрытие до ~99–100%
+при нашей версии ядра."""
 from bmi_core import (
     bmi_value,
     build_premium_plan,
@@ -44,5 +35,7 @@ def test_build_premium_plan_gain_ru_tips():
     bmi = bmi_value(weight, height)
     plan = build_premium_plan(25, weight, height, bmi, "ru", "general", False)
     assert plan["action"] == "gain"
-    assert isinstance(plan["nutrition_tip"], str) and len(plan["nutrition_tip"]) > 0
-    assert isinstance(plan["activity_tip"], str) and len(plan["activity_tip"]) > 0
+    nutrition_tip = plan["nutrition_tip"]
+    activity_tip = plan["activity_tip"]
+    assert isinstance(nutrition_tip, str) and len(nutrition_tip) > 0
+    assert isinstance(activity_tip, str) and len(activity_tip) > 0

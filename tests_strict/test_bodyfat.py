@@ -3,27 +3,9 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-import pathlib
-import sys
+import math
 
 from bodyfat import bf_deurenberg, bf_us_navy, bf_ymca, estimate_all
-
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
-
-import pathlib
-import sys
-
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
-
-import pathlib
-import sys
-
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-import sys
-from pathlib import Path
-
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-import math
 
 
 def assert_percent(x):
@@ -46,7 +28,9 @@ def test_us_navy_male_smoke():
 
 
 def test_us_navy_female_smoke():
-    val = bf_us_navy(height_cm=170, neck_cm=34, waist_cm=74, hip_cm=94, gender="female")
+    val = bf_us_navy(
+        height_cm=170, neck_cm=34, waist_cm=74, hip_cm=94, gender="female"
+    )
     assert_percent(val)
 
 
@@ -78,7 +62,10 @@ def test_estimate_all_smoke():
     assert "methods" in res and isinstance(res["methods"], dict)
     # если хотя бы одна методика дала число — ок
     vals = list(res["methods"].values())
-    assert any(isinstance(v, (int, float)) and 0 < v < 100 for v in vals)
+    valid_vals = [
+        v for v in vals if isinstance(v, (int, float)) and 0 < v < 100
+    ]
+    assert len(valid_vals) > 0
     # если есть медиана — тоже должна быть корректным процентом
     if res.get("median") is not None:
         assert_percent(res["median"])

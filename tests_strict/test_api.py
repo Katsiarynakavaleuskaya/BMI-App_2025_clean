@@ -82,8 +82,8 @@ def test_bmi_en_athlete():
     assert r.status_code == 200
     data = r.json()
     assert data["group"] == "athlete"
-    assert ("Overweight" in data["category"] or
-            "Healthy weight" in data["category"])
+    category = data["category"]
+    assert ("Overweight" in category or "Healthy weight" in category)
 
 
 def test_bmi_missing_fields():
