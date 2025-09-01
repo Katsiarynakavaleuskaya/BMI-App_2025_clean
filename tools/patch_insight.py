@@ -17,6 +17,17 @@ src = APP.read_text(encoding="utf-8")
 changed = False
 
 def ensure_import(line: str):
+    """
+    Ensure a given import (or any line) is present at the top of the in-memory source.
+    
+    If the exact `line` does not already appear in the module-level `src` text, this prepends `line` plus a newline to `src` and sets the global `changed` flag to True. Mutates the module-level `src` and `changed` variables in place.
+    
+    Parameters:
+        line (str): The exact line to ensure exists (typically an import statement).
+    
+    Returns:
+        None
+    """
     global src, changed
     if line not in src:
         src = line + "\n" + src
@@ -25,9 +36,9 @@ def ensure_import(line: str):
 # Импорты
 ensure_import("import os")
 if "import llm" not in src:
-    if m := re.search(
-        r"(^|\n)(?:from\s+\S+\s+import\s+\S+|import\s+\S+)(?:.*\n)+", src
-    ):
+    # вставим рядом с другими import
+    m = re.search(r"(^|\n)(?:from\s+\S+\s+import\s+\S+|import\s+\S+)(?:.*\n)+", src)
+    if m:
         src = src[:m.end()] + "import llm\n" + src[m.end():]
     else:
         ensure_import("import llm")

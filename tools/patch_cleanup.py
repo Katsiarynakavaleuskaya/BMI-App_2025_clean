@@ -14,10 +14,15 @@ changed = False
 
 def drop_route(func_name: str):
     """
-    Удаляет блок вида:
-    @app.post("/...") [возможно с зависимостями/параметрами в декораторе в нескольких строках]
-    (async )def func_name(...):
-        <тело>
+    Remove any @app.post-decorated route definition (decorators, function signature, and body) for the given function name from the module source.
+    
+    Scans the global `src` string for one or more @app.post(...) decorators immediately followed by a function definition named `func_name` (optionally `async`) and deletes that entire block. If a block is removed, updates the globals `src` (modified source) and `changed` (set to True).
+    
+    Parameters:
+        func_name (str): Name of the route handler function to remove.
+    
+    Side effects:
+        Modifies the module-level variables `src` and `changed`. Does not return a value.
     """
     global src, changed
     # Захват декоратора(ов) над нужной функцией и самого тела функции
@@ -37,6 +42,11 @@ for fn in ("insight", "api_v1_insight"):
 
 # 2) Импорты для зависимостей/моделей
 def ensure(line: str):
+    """
+    Ensure a specific line is present at the start of the source buffer, prepending it if missing.
+    
+    If `line` is not already contained in the module-level `src` string, this function prepends `line` (plus a newline) to `src` and sets the module-level `changed` flag to True. This function has no return value and mutates the globals `src` and `changed`.
+    """
     global src, changed
     if line not in src:
         src = line + "\n" + src
@@ -98,9 +108,29 @@ changed = True
 # 6) Включаем Depends(get_api_key) для /api/v1/bmi если вдруг отсутствует
 # Ищем существующий декоратор и подставим зависимости, если их нет
 def add_depends_for_bmi():
+    """
+    Ensure the /api/v1/bmi POST route includes the dependency that enforces X-API-Key validation.
+    
+    Searches the module source (global `src`) for an @app.post("/api/v1/bmi"...) decorator that does not already include a `dependencies=` argument and appends `, dependencies=[Depends(get_api_key)]` before the decorator's closing parenthesis. If any replacements are made the updated source is written back to the global `src` and the global `changed` flag is set True.
+    
+    Side effects:
+    - Mutates global variables `src` and `changed`.
+    
+    Notes:
+    - Only alters the decorator text; it will not modify function bodies or create duplicate dependency entries if `dependencies=` is already present.
+    """
     global src, changed
     pattern = r'(@app\.post\("/api/v1/bmi"(?!.*dependencies=)\s*(?:,.*)?\))'
     def repl(m):
+        """
+        Replacement callback for re.sub that appends a `dependencies=[Depends(get_api_key)]` argument to a matched decorator string.
+        
+        Parameters:
+            m (re.Match): Regex match whose group(1) is the decorator text (e.g., '@app.post("/api/v1/bmi", ...)').
+        
+        Returns:
+            str: The possibly-modified decorator string with `, dependencies=[Depends(get_api_key)])` inserted before the trailing `)`.
+        """
         dec = m.group(1)
         if dec.endswith(")"):
             dec = dec[:-1] + ", dependencies=[Depends(get_api_key)])"
