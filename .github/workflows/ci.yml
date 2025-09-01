@@ -23,7 +23,8 @@ jobs:
         pip install -r requirements-dev.txt
     - name: Security scan with Bandit
       run: |
-        bandit -r . -f json -o bandit-report.json
+        # Exclude tests and coverage artifacts to avoid false positives (e.g., B101 asserts)
+        bandit -r . -x tests,tests_strict,htmlcov -f json -o bandit-report.json
     - name: Security scan with Safety
       run: |
         safety check --output json > safety-report.json
