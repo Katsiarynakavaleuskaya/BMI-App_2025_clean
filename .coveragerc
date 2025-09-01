@@ -1,6 +1,7 @@
 [run]
 omit =
     tests/*
+    tests_strict/*
     providers/*
     llm.py
 

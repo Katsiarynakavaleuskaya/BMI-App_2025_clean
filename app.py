@@ -1,3 +1,4 @@
+import inspect
 import logging
 import os
 import time
@@ -376,7 +377,8 @@ async def api_v1_insight(req: InsightRequest):
         )
 
     try:
-        txt = await provider.generate(req.text)
+        result = provider.generate(req.text)
+        txt = await result if inspect.isawaitable(result) else result
     except Exception:
         raise HTTPException(
             status_code=503,
@@ -390,8 +392,8 @@ async def api_v1_insight(req: InsightRequest):
 
 @app.post("/insight")
 async def insight(req: InsightRequest):
-    flag = str(os.getenv("FEATURE_INSIGHT", "")).strip().lower()
-    if flag not in {"1", "true", "yes", "on"}:
+    flag = str(os.getenv("FEATURE_INSIGHT", "true")).strip().lower()
+    if flag in {"0", "false", "no", "off"}:
         raise HTTPException(status_code=503, detail="insight feature disabled")
 
     if not os.getenv("LLM_PROVIDER", "").strip():
@@ -422,7 +424,8 @@ async def insight(req: InsightRequest):
         )
 
     try:
-        txt = await provider.generate(req.text)
+        result = provider.generate(req.text)
+        txt = await result if inspect.isawaitable(result) else result
     except Exception:
         raise HTTPException(
             status_code=503,

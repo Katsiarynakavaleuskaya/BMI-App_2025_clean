@@ -15,6 +15,12 @@ def test_health_ok():
     assert isinstance(data, dict) and data.get("status") == "ok"
 
 
+def test_root_page_smoke():
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "<html" in r.text.lower()
+
+
 def test_bmi_smoke_ok():
     payload = {
         "height_m": 1.70,
