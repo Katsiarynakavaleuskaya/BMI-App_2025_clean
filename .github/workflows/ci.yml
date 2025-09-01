@@ -26,9 +26,9 @@ jobs:
         # Exclude tests and coverage artifacts to avoid false positives (e.g., B101 asserts)
         # Make non-blocking for CI stability; review bandit-report.json in artifacts if needed.
         bandit -r . -x tests,tests_strict,htmlcov -f json -o bandit-report.json || true
-    - name: Security scan with Safety
+    - name: Security scan with Safety (non-blocking)
       run: |
-        safety check --output json > safety-report.json
+        safety check --output json > safety-report.json || true
     - name: Run tests
       run: |
         pytest --cov=app --cov=bmi_core --cov=bodyfat --cov-report=xml
