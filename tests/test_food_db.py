@@ -19,9 +19,9 @@ def test_parse_food_db():
     assert isinstance(food_db, dict)
     assert len(food_db) > 0
 
-    # Check a specific food item
-    assert "Овсяные хлопья" in food_db
-    oatmeal = food_db["Овсяные хлопья"]
+    # Check a specific food item (using canonical name)
+    assert "oats" in food_db
+    oatmeal = food_db["oats"]
 
     # Check that all required fields are present
     assert hasattr(oatmeal, "name")

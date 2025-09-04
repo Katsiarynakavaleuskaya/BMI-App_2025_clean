@@ -103,7 +103,15 @@ def calculate_recipe_nutrients(recipe: Recipe, food_db: Dict[str, FoodItem]) -> 
 
     total_nutrients = {}
 
+    # Handle edge case of empty recipe
+    if not recipe or not recipe.ingredients:
+        return total_nutrients
+
     for ingredient_name, amount_g in recipe.ingredients.items():
+        # Handle edge cases
+        if not ingredient_name or amount_g <= 0:
+            continue
+
         # Map ingredient name to canonical name
         canonical_name = map_to_canonical(ingredient_name)
 

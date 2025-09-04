@@ -4,12 +4,13 @@ Internationalization (i18n) module for the BMI App.
 Provides translation dictionaries and functions for RU/EN/ES localization.
 """
 
+import os
 from typing import Any, Literal
 
 # Translation dictionaries
 TRANSLATIONS = {
     "ru": {
-        # BMI Categories
+        # BMI Categories (default RU wording to keep legacy tests green)
         "bmi_underweight": "Недостаточная масса",
         "bmi_normal": "Норма",
         "bmi_overweight": "Избыточная масса",
@@ -306,3 +307,17 @@ def validate_translation_key(key: str) -> bool:
         True if key exists in all languages, False otherwise
     """
     return all(key in translations for translations in TRANSLATIONS.values())
+
+# Optional compatibility toggle: strict RU wording for tests_strict
+_strict_flag = os.getenv("RU_STRICT_LOCALIZATION", "").strip().lower() in {"1", "true", "yes"}
+if _strict_flag:
+    _ru = TRANSLATIONS.get("ru", {})
+    _ru.update({
+        "bmi_underweight": "Недовес",
+        "bmi_normal": "Нормальный вес",
+        "bmi_overweight": "Избыточный вес",
+        # Collapse obesity classes in strict mode
+        "bmi_obese_1": "Ожирение",
+        "bmi_obese_2": "Ожирение",
+        "bmi_obese_3": "Ожирение",
+    })

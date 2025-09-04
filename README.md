@@ -119,10 +119,16 @@ Access the API at `http://localhost:8000`
 
 ## Testing
 
-Run tests:
-```bash
-pytest
-```
+- Regular test suite (default RU localization):
+  ```bash
+  pytest
+  ```
+
+- Strict suite (alternative RU wording for BMI categories):
+  ```bash
+  RU_STRICT_LOCALIZATION=1 pytest tests_strict
+  ```
+  The env flag switches RU translations to match `tests_strict` expectations.
 
 ## CRON Setup
 

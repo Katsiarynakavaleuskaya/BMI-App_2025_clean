@@ -6,9 +6,11 @@ EN: Tests for the recipe database parser.
 """
 
 import pytest
+import tempfile
+import os
 
 from core.food_db import parse_food_db
-from core.recipe_db import calculate_recipe_nutrients, parse_recipe_db, scale_recipe_to_kcal
+from core.recipe_db import calculate_recipe_nutrients, parse_recipe_db, scale_recipe_to_kcal, Recipe
 
 
 def test_parse_recipe_db():
@@ -76,6 +78,50 @@ def test_scale_recipe_to_kcal():
     # Check that the recipe object is properly created
     assert scaled_recipe.name == recipe.name
     assert scaled_recipe.flags == recipe.flags
+
+
+def test_scale_recipe_to_kcal_zero_calories():
+    """Test recipe scaling when current calories are zero."""
+    # Parse databases
+    food_db = parse_food_db()
+    
+    # Create a recipe with zero calories
+    recipe = Recipe(
+        name="Zero Calorie Recipe",
+        ingredients={},  # No ingredients
+        flags=set()
+    )
+
+    # Scale to a different calorie target
+    target_kcal = 500
+    scaled_recipe = scale_recipe_to_kcal(recipe, target_kcal, food_db)
+
+    # Should return original recipe when calories are zero
+    assert scaled_recipe.name == recipe.name
+    assert scaled_recipe.ingredients == recipe.ingredients
+    assert scaled_recipe.flags == recipe.flags
+
+
+def test_parse_recipe_db_malformed_entries():
+    """Test parsing recipe database with malformed entries."""
+    # Create a temporary CSV file with malformed entries
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+        f.write("name,ingredients,flags\n")
+        f.write("Test Recipe,Ingredient:100,VEG\n")
+        f.write("Bad Recipe,Ingredient:bad_value,VEG\n")  # Malformed amount
+        f.write("Another Bad Recipe,IngredientNoAmount,VEG\n")  # Missing colon and amount
+        temp_path = f.name
+
+    try:
+        # Parse the recipe database
+        recipe_db = parse_recipe_db(temp_path)
+
+        # Should have only the valid recipe
+        assert len(recipe_db) == 1
+        assert "Test Recipe" in recipe_db
+    finally:
+        # Clean up
+        os.unlink(temp_path)
 
 
 if __name__ == "__main__":
