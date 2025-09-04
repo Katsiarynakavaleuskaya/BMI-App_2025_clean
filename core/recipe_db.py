@@ -28,7 +28,10 @@ class Recipe:
     flags: Set[str]
 
 
-def parse_recipe_db(csv_path: str = "data/recipes.csv", food_db: Dict[str, FoodItem] = None) -> Dict[str, Recipe]:
+def parse_recipe_db(
+    csv_path: str = "data/recipes.csv",
+    food_db: Dict[str, FoodItem] | None = None
+) -> Dict[str, Recipe]:
     """
     RU: Парсит CSV файл базы данных рецептов.
     EN: Parse recipe database CSV file.
@@ -68,6 +71,10 @@ def parse_recipe_db(csv_path: str = "data/recipes.csv", food_db: Dict[str, FoodI
             flags_str = row.get("flags", "")
             flags = set(flags_str.split(",")) if flags_str else set()
 
+            # Skip recipes without any valid ingredients parsed
+            if not ingredients:
+                continue
+
             # Create Recipe
             recipe = Recipe(
                 name=row["name"],
@@ -92,11 +99,16 @@ def calculate_recipe_nutrients(recipe: Recipe, food_db: Dict[str, FoodItem]) -> 
     Returns:
         Dictionary mapping nutrient names to amounts
     """
+    from .aliases import map_to_canonical
+
     total_nutrients = {}
 
     for ingredient_name, amount_g in recipe.ingredients.items():
-        if ingredient_name in food_db:
-            food_item = food_db[ingredient_name]
+        # Map ingredient name to canonical name
+        canonical_name = map_to_canonical(ingredient_name)
+
+        if canonical_name in food_db:
+            food_item = food_db[canonical_name]
 
             # Add nutrients from this ingredient
             nutrients = [
