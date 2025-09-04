@@ -20,7 +20,7 @@ class TestFoodPipelineIntegration:
         """Set up test environment."""
         self.test_dir = tempfile.mkdtemp()
         self.pipeline = FoodMergePipeline(data_dir=self.test_dir)
-        
+
         # Create a new UnifiedFoodDatabase with test directory to avoid cached data interference
         # instead of setting to None which causes type errors
         from core.food_apis.unified_db import UnifiedFoodDatabase
@@ -75,10 +75,10 @@ class TestFoodPipelineIntegration:
 
                 # Verify that we have exactly one food item
                 assert len(food_db) == 1
-                
+
                 # Get the single food item
                 food_name, food_item = list(food_db.items())[0]
-                
+
                 # Verify the nutrient values
                 assert food_item.protein_g == 2.9
                 assert food_item.Fe_mg == 2.7

@@ -166,35 +166,35 @@ def test_compatible_flags():
     """Test dietary flag compatibility."""
     # Get the path to the test data file
     csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "food_db_new.csv")
-    
+
     # Parse the food database
     food_db = FoodDB(csv_path)
-    
+
     # Test VEG diet with OMNI food (should be incompatible)
     food_flags = ["OMNI"]
     diet_flags = ["VEG"]
     assert not food_db._compatible(food_flags, diet_flags)
-    
+
     # Test VEG diet with VEG food (should be compatible)
     food_flags = ["VEG"]
     diet_flags = ["VEG"]
     assert food_db._compatible(food_flags, diet_flags)
-    
+
     # Test PESC diet with OMNI food (should be incompatible)
     food_flags = ["OMNI"]
     diet_flags = ["PESC"]
     assert not food_db._compatible(food_flags, diet_flags)
-    
+
     # Test GF diet with GF food (should be compatible)
     food_flags = ["GF"]
     diet_flags = ["GF"]
     assert food_db._compatible(food_flags, diet_flags)
-    
+
     # Test GF diet with non-GF food (should be incompatible)
     food_flags = ["OMNI"]
     diet_flags = ["GF"]
     assert not food_db._compatible(food_flags, diet_flags)
-    
+
     # Test no special diet flags (should be compatible)
     food_flags = ["OMNI"]
     diet_flags = []
@@ -204,14 +204,14 @@ def test_pick_booster_for_edge_cases():
     """Test booster food selection edge cases."""
     # Get the path to the test data file
     csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "food_db_new.csv")
-    
+
     # Parse the food database
     food_db = FoodDB(csv_path)
-    
+
     # Test picking a booster for unknown micro (should return None)
     booster = food_db.pick_booster_for("Unknown_Micro", [])
     assert booster is None
-    
+
     # Test picking a booster when no compatible food is available
     # This would require a special case where all candidates are incompatible
 
