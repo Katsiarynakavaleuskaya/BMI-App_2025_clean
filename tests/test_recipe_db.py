@@ -5,12 +5,13 @@ RU: Тесты для парсера базы данных рецептов.
 EN: Tests for the recipe database parser.
 """
 
-import pytest
-import tempfile
 import os
+import tempfile
+
+import pytest
 
 from core.food_db import parse_food_db
-from core.recipe_db import calculate_recipe_nutrients, parse_recipe_db, scale_recipe_to_kcal, Recipe
+from core.recipe_db import Recipe, calculate_recipe_nutrients, parse_recipe_db, scale_recipe_to_kcal
 
 
 def test_parse_recipe_db():
@@ -84,7 +85,7 @@ def test_scale_recipe_to_kcal_zero_calories():
     """Test recipe scaling when current calories are zero."""
     # Parse databases
     food_db = parse_food_db()
-    
+
     # Create a recipe with zero calories
     recipe = Recipe(
         name="Zero Calorie Recipe",
