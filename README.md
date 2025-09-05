@@ -137,6 +137,10 @@ Access the API at `http://localhost:8000`
 
 To automatically update the food database weekly, see [CRON_SETUP.md](CRON_SETUP.md)
 
+## GitHub Secrets Setup
+
+For CI/CD pipelines (code coverage, etc.), see [SETUP_SECRETS.md](SETUP_SECRETS.md) to configure required repository secrets.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

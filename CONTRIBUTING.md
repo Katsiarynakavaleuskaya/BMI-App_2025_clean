@@ -46,6 +46,7 @@ pytest -q --maxfail=1 --disable-warnings \
 
 - Non‑blocking scanners run in CI (Bandit, CodeQL).
 - Address warnings when practical; don’t block urgent fixes.
+- For repository secrets setup (CODECOV_TOKEN, etc.), see [SETUP_SECRETS.md](SETUP_SECRETS.md).
 
 ## Getting Help
 
