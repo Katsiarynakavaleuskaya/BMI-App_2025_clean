@@ -12,10 +12,31 @@ Tests cover:
 - Error handling and edge cases
 """
 
+import importlib.util
+import os
+
+# Fix the import to avoid circular dependency by directly importing the app instance
+import sys
+from pathlib import Path
+
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app import app
+# Add the parent directory to sys.path to directly import app.py
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
+
+# Directly import and instantiate the app
+app_path = os.path.join(parent_dir, "app.py")
+app_spec = importlib.util.spec_from_file_location("app", app_path)
+if app_spec is not None and app_spec.loader is not None:
+    app_module = importlib.util.module_from_spec(app_spec)
+    app_spec.loader.exec_module(app_module)
+    app: FastAPI = app_module.app
+else:
+    raise ImportError("Could not load app module")
 
 client = TestClient(app)
 

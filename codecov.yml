@@ -5,11 +5,21 @@ coverage:
         target: 96%
         threshold: 0.2%
         informational: false
+      strict:
+        flags: strict
+        target: 96%
+        threshold: 0.2%
+        informational: false
     patch:
       default:
-        target: 0%
+        target: 96%
         threshold: 1%
-        informational: true
+        informational: false
+      strict:
+        flags: strict
+        target: 96%
+        threshold: 1%
+        informational: false
 comment:
   layout: "reach, diff, flags, files"
   behavior: default

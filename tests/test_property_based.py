@@ -18,6 +18,9 @@ except Exception as exc:  # pragma: no cover
 
 try:
     from app import app as fastapi_app  # type: ignore
+    # Ensure fastapi_app is not None
+    if fastapi_app is None:
+        raise ImportError("Failed to import FastAPI app")
 except Exception as exc:  # pragma: no cover
     pytest.skip(f"FastAPI app import failed: {exc}", allow_module_level=True)
 

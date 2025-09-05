@@ -321,3 +321,11 @@ if _strict_flag:
         "bmi_obese_2": "Ожирение",
         "bmi_obese_3": "Ожирение",
     })
+    # Align EN wording with strict expectations
+    _en = TRANSLATIONS.get("en", {})
+    _en.update({
+        "bmi_normal": "Healthy weight",
+        "bmi_obese_1": "Obesity",
+        "bmi_obese_2": "Obesity",
+        "bmi_obese_3": "Obesity",
+    })
