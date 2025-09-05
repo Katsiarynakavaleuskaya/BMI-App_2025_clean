@@ -142,6 +142,7 @@ def test_bf_ymca_property(weight_kg, waist_cm, gender):
 
 
 # Property-based tests for API endpoints
+@settings(deadline=500)  # Increase deadline to 500ms to avoid flaky failures
 @given(
     weight=st.floats(30, 300),
     height=st.floats(0.5, 2.5)

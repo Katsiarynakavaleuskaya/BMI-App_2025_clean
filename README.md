@@ -1,5 +1,8 @@
 # PulsePlate
 
+[![CI](https://github.com/your-username/PulsePlate/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/PulsePlate/actions/workflows/ci.yml)
+[![Pytest](https://github.com/your-username/PulsePlate/actions/workflows/python-tests.yml/badge.svg)](https://github.com/your-username/PulsePlate/actions/workflows/python-tests.yml)
+[![codecov](https://codecov.io/gh/your-username/PulsePlate/branch/main/graph/badge.svg)](https://codecov.io/gh/your-username/PulsePlate)
 [![Data sources: USDA, OFF](https://img.shields.io/badge/Data%20sources-USDA%2C%20OFF-brightgreen)](DATA_SOURCES.md)
 
 ## Overview

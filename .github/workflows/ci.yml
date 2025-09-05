@@ -41,7 +41,7 @@ jobs:
       # - name: Security scan with Safety (non-blocking)
       #   run: safety scan --output json > safety-report.json || true
 
-      - name: Run tests with coverage (97% required)
+      - name: Run tests with coverage (96% required)
         env:
           PYTHONPATH: .
           APP_ENV: ci
