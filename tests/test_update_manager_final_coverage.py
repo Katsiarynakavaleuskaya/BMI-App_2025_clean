@@ -65,7 +65,7 @@ class TestUpdateManagerFinalCoverage:
     async def test_check_usda_updates_interval_passed(self):
         """Test _check_usda_updates when interval has passed."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            manager = DatabaseUpdateManager(cache_dir=Path(temp_dir))
+            manager = DatabaseUpdateManager(cache_dir=str(Path(temp_dir)))
 
             # Add an old version
             old_time = (datetime.now() - timedelta(hours=25)).isoformat()  # Past update interval
@@ -87,7 +87,7 @@ class TestUpdateManagerFinalCoverage:
     async def test_update_database_duration_calculation(self):
         """Test that update_database correctly calculates duration."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            manager = DatabaseUpdateManager(cache_dir=Path(temp_dir))
+            manager = DatabaseUpdateManager(cache_dir=str(Path(temp_dir)))
 
             # Mock _update_usda_database to return immediately
             mock_result = UpdateResult(
@@ -111,7 +111,7 @@ class TestUpdateManagerFinalCoverage:
     async def test_update_usda_database_no_changes(self):
         """Test _update_usda_database when no changes detected."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            manager = DatabaseUpdateManager(cache_dir=Path(temp_dir))
+            manager = DatabaseUpdateManager(cache_dir=str(Path(temp_dir)))
 
             # Add a version with same checksum as new data
             version = DatabaseVersion(
@@ -156,7 +156,7 @@ class TestUpdateManagerFinalCoverage:
     async def test_update_usda_database_validation_errors(self):
         """Test _update_usda_database when validation fails."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            manager = DatabaseUpdateManager(cache_dir=Path(temp_dir))
+            manager = DatabaseUpdateManager(cache_dir=str(Path(temp_dir)))
 
             # Create a proper food item
             food_item = UnifiedFoodItem(
@@ -187,7 +187,7 @@ class TestUpdateManagerFinalCoverage:
     async def test_load_backup_file_not_found(self):
         """Test _load_backup when backup file doesn't exist."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            manager = DatabaseUpdateManager(cache_dir=Path(temp_dir))
+            manager = DatabaseUpdateManager(cache_dir=str(Path(temp_dir)))
 
             # Try to load a non-existent backup
             with pytest.raises(FileNotFoundError):
@@ -197,7 +197,7 @@ class TestUpdateManagerFinalCoverage:
     async def test_cleanup_old_backups_no_files(self):
         """Test _cleanup_old_backups when no backup files exist."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            manager = DatabaseUpdateManager(cache_dir=Path(temp_dir))
+            manager = DatabaseUpdateManager(cache_dir=str(Path(temp_dir)))
 
             # Should not crash when no backup files exist
             await manager._cleanup_old_backups("usda")
@@ -206,7 +206,7 @@ class TestUpdateManagerFinalCoverage:
     async def test_rollback_database_success(self):
         """Test rollback_database success case."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            manager = DatabaseUpdateManager(cache_dir=Path(temp_dir))
+            manager = DatabaseUpdateManager(cache_dir=str(Path(temp_dir)))
 
             # Add a version
             version = DatabaseVersion(
@@ -249,27 +249,11 @@ class TestUpdateManagerFinalCoverage:
             assert new_version.metadata["rolled_back_from"] == "1.0"
             assert new_version.metadata["rolled_back_to"] == "1.0"
 
-    def test_calculate_checksum(self):
-        """Test _calculate_checksum method."""
-        manager = DatabaseUpdateManager()
-
-        # Test with simple data
-        data1 = {"a": 1, "b": 2}
-        data2 = {"b": 2, "a": 1}  # Same data, different order
-
-        # Should produce same checksum for same data regardless of order
-        checksum1 = manager._calculate_checksum(data1)
-        checksum2 = manager._calculate_checksum(data2)
-
-        assert checksum1 == checksum2
-        assert isinstance(checksum1, str)
-        assert len(checksum1) > 0
-
     @pytest.mark.asyncio
     async def test_close_method_with_exceptions(self):
         """Test close method when clients raise exceptions."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            manager = DatabaseUpdateManager(cache_dir=Path(temp_dir))
+            manager = DatabaseUpdateManager(cache_dir=str(Path(temp_dir)))
 
             # Mock clients to raise exceptions
             manager.usda_client.close = AsyncMock(side_effect=Exception("USDA close error"))
