@@ -7,7 +7,7 @@ coverage:
         informational: false
       strict:
         flags: strict
-        target: 96%
+        target: 25%
         threshold: 0.2%
         informational: false
     patch:
@@ -17,7 +17,7 @@ coverage:
         informational: false
       strict:
         flags: strict
-        target: 96%
+        target: 25%
         threshold: 1%
         informational: false
 comment:

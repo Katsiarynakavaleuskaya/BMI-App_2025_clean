@@ -8,18 +8,18 @@ import os
 import sys
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi.testclient import TestClient
 
 # Import the app correctly
-import app
+from app import app
 
 
 def test_api_endpoint_multilingual():
     """Test the API endpoint with different languages."""
     # Set up test client
-    client = TestClient(app.app)
+    client = TestClient(app)
 
     # Mock API key
     api_key = "test_api_key"
@@ -86,7 +86,7 @@ def test_api_endpoint_multilingual():
 def test_api_endpoint_with_targets():
     """Test the API endpoint with pre-calculated targets."""
     # Set up test client
-    client = TestClient(app.app)
+    client = TestClient(app)
 
     # Mock API key
     api_key = "test_api_key"
@@ -135,7 +135,5 @@ def test_api_endpoint_with_targets():
     assert "weekly_coverage" in result
     assert "shopping_list" in result
 
-if __name__ == "__main__":
-    test_api_endpoint_multilingual()
-    test_api_endpoint_with_targets()
-    print("All tests passed! 🎉")
+# These tests can be run with pytest
+# pytest tests_strict/test_api_endpoint.py
