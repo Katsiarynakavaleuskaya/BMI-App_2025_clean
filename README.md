@@ -3,11 +3,19 @@
 [![CI](https://github.com/Katsiarynakavaleuskaya/BMI-App_2025_clean/actions/workflows/ci.yml/badge.svg)](https://github.com/Katsiarynakavaleuskaya/BMI-App_2025_clean/actions/workflows/ci.yml)
 [![Pytest](https://github.com/Katsiarynakavaleuskaya/BMI-App_2025_clean/actions/workflows/python-tests.yml/badge.svg)](https://github.com/Katsiarynakavaleuskaya/BMI-App_2025_clean/actions/workflows/python-tests.yml)
 [![codecov](https://codecov.io/gh/Katsiarynakavaleuskaya/BMI-App_2025_clean/branch/main/graph/badge.svg)](https://codecov.io/gh/Katsiarynakavaleuskaya/BMI-App_2025_clean)
-[![Data sources: USDA, OFF](https://img.shields.io/badge/Data%20sources-USDA%2C%20OFF-brightgreen)](DATA_SOURCES.md)
+[![Data sources: USDA, CIQUAL, FAO/INFOODS, OFF](https://img.shields.io/badge/Data%20sources-USDA%2C%20CIQUAL%2C%20FAO%2FINFOODS%2C%20OFF-brightgreen)](DATA_SOURCES.md)
 
 ## Overview
 
 PulsePlate is a comprehensive health and nutrition application that provides BMI calculations, body fat percentage analysis, and personalized nutrition recommendations.
+
+## 📋 Important Note - Project Tracking
+
+**All team members should regularly review the project TODO files:**
+- [PROJECT_TODO.md](PROJECT_TODO.md) - Main project tracking in English
+- [TODO.md](TODO.md) - Additional tasks and issues in Russian
+
+These files contain the current status of all project tasks, known issues, and priorities. Please update the status of any items you're working on to keep the team informed.
 
 ## Features
 
@@ -21,7 +29,9 @@ PulsePlate is a comprehensive health and nutrition application that provides BMI
 
 The application now includes a professional food database pipeline that merges data from multiple sources:
 
-- **USDA FoodData Central** - Primary source for nutrient data
+- **USDA FoodData Central** - Primary source for nutrient data (highest quality)
+- **CIQUAL (ANSES, France)** - European reference database with ~2600 products
+- **FAO/INFOODS** - Regional food composition databases (AFROFOODS, LATINFOODS, etc.)
 - **Open Food Facts** - Secondary source for additional foods and brand information
 - **Canonical mapping** - Eliminates duplicates and standardizes food names
 - **Automated merging** - Combines data with priority rules and conflict resolution
@@ -35,9 +45,12 @@ core/
     base.py          # Base adapter interface
     usda.py          # USDA adapter
     off.py           # Open Food Facts adapter
+    ciqual.py        # CIQUAL adapter
+    infoods.py       # FAO/INFOODS adapter
   food_merge.py      # Data merging logic
   units.py           # Unit conversion helpers
   aliases.py         # Canonical name mapping
+  validators.py      # Data validation helpers
 data/
   food_aliases.csv   # Alias to canonical name mapping
   food_db.csv        # Merged food database (generated)
@@ -74,7 +87,7 @@ The merged food database follows a standardized schema:
   "Mg_mg": 79.0,
   "flags": ["GF", "VEG"],
   "price": 0.0,
-  "source": "MERGED(USDA,OFF)",
+  "source": "MERGED(USDA,CIQUAL,INFOODS,OFF)",
   "version_date": "2025-09-04"
 }
 ```
@@ -89,7 +102,7 @@ The merged food database follows a standardized schema:
 
 2. Install dependencies:
    ```bash
-   pip install -r requirements.txt
+pip install -r requirements.txt
    ```
 
 3. Set up environment variables:
@@ -132,6 +145,24 @@ Access the API at `http://localhost:8000`
   RU_STRICT_LOCALIZATION=1 pytest tests_strict
   ```
   The env flag switches RU translations to match `tests_strict` expectations.
+
+## Development
+
+Quick setup with dev tools (Ruff, Flake8):
+
+- Create venv and install dev dependencies:
+  - `make venv` (Makefile will install `requirements-dev.txt` if present)
+  - or manually: `. .venv/bin/activate && pip install -r requirements-dev.txt`
+
+- Auto-fix style and line length:
+  - `ruff check . --fix`
+  - Only line-length fixes: `ruff check . --fix --select E501`
+
+- Strip trailing whitespace across repo:
+  - `python scripts/strip_trailing_whitespace.py`
+
+- Optional: install pre-commit hook to enforce checks:
+  - `scripts/pre_commit_setup.sh`
 
 ## CRON Setup
 

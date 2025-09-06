@@ -2,9 +2,11 @@
 
 This document tracks the progress of the BMI App project, showing what has been completed and what still needs to be done.
 
+For information on how to update this file and other TODO files, see [TODO_UPDATE_PROCESS.md](TODO_UPDATE_PROCESS.md)
+
 ## Completed Tasks
 
-### ✅ Spanish Language Implementation
+### Spanish Language Implementation
 - [x] Enhanced core i18n system to include Spanish language support
 - [x] Added comprehensive Spanish translation dictionary with all necessary keys
 - [x] Extended Language type alias to include "es"
@@ -39,7 +41,7 @@ This document tracks the progress of the BMI App project, showing what has been 
 - [x] Created SPANISH_EXAMPLES.md with detailed curl examples
 - [x] Created SPANISH_IMPLEMENTATION_SUMMARY.md documentation
 
-### ✅ Premium Targets API Implementation
+### Premium Targets API Implementation
 - [x] Implemented compact RDA/AI table for key micronutrients (19-50 age group):
   - Fe, Ca, VitD, B12, I, Folate, K, Mg
 - [x] Added water guidelines and activity recommendations (150/75 мин/нед)
@@ -60,16 +62,16 @@ This document tracks the progress of the BMI App project, showing what has been 
 
 ## In Progress
 
-### ⏳ Additional Language Support
+### Additional Language Support
 - [ ] Consider adding French language support
 - [ ] Consider adding German language support
 
-### ⏳ Enhanced Documentation
+### Enhanced Documentation
 - [ ] Create comprehensive API documentation
 - [ ] Add user guides for all features
 - [ ] Create developer documentation for contributing
 
-### 🌟 Brand Identity & App Design (PulsePlate)
+### Brand Identity & App Design (PulsePlate)
 - [ ] Finalize app name: PulsePlate with subtitle "Nutrition • Body • Lifestyle"
 - [ ] Design app icon in Figma:
   - Background: Navy #0F172A
@@ -95,7 +97,7 @@ This document tracks the progress of the BMI App project, showing what has been 
   - Export via Bodymovin from After Effects
   - Integrate in React (lottie-web/react) and Capacitor (iOS webview)
 
-### 🌟 Frontend Development (React + Vite + Capacitor, iOS-first)
+### Frontend Development (React + Vite + Capacitor, iOS-first)
 - [ ] P0 — Foundation (today/tomorrow):
   - [ ] Design system (tokens): frontend/src/styles/tokens.css with PulsePlate color palette
   - [ ] UI stack: Tailwind + clsx/cva (component variants), fonts (SF Pro/Inter)
@@ -123,7 +125,7 @@ This document tracks the progress of the BMI App project, showing what has been 
   - [ ] CI: GitHub Actions — lint, typing, unit/UI tests, build; preview (gh-pages or Vercel) for frontend
   - [ ] ASO package: screenshots 6.1″/6.7″ (light/dark), promo texts, 15–20 sec video screencast
 
-### 🌟 Database Expansion and Integration
+### Database Expansion and Integration
 - [ ] Research FooDB API/data format and create adapter to enhance phytonutrient data
 - [ ] Evaluate WHO Food Composition Database for international food data integration
 - [ ] Assess EuroFIR datasets for European regional food data
@@ -141,36 +143,45 @@ This document tracks the progress of the BMI App project, showing what has been 
 - [ ] Expand nutrient schema to include missing vitamins and minerals (A, C, E, K, B-complex, Zinc, Selenium)
 - [ ] Implement comprehensive food category expansion (add fruits, dairy, nuts/seeds, herbs/spices)
 
+### Current Issues and Problems (Updated September 2025)
+- [ ] LLM Provider Issues: Testing and integration issues with Grok API (requires xAI credits)
+- [ ] LLM Provider Issues: Ollama/Pico integration as fallback providers needs completion
+- [ ] LLM Provider Issues: Enhanced error handling in providers/ directory needs review
+- [ ] Performance Issues: Ollama cold start times can be 30-90 seconds
+- [ ] Performance Issues: Model warmup takes 15-45 seconds
+- [ ] Performance Issues: Full idle-to-working transition can take 2-5 minutes
+- [ ] BMI Pro Features: Ensure Waist-to-Height Ratio (WHtR), Waist-to-Hip Ratio (WHR), Fat-Free Mass Index (FFMI), and obesity staging with risk assessment are properly implemented
+
 ## Pending Tasks
 
-### 🔜 UI/UX Improvements
+### UI/UX Improvements
 - [ ] Add dark mode support to web interface
 - [ ] Improve mobile responsiveness
 - [ ] Add language-specific formatting for numbers (decimal separators)
 - [ ] Add language-specific date/time formatting
 
-### 🔜 Additional Features
+### Additional Features
 - [ ] Implement meal planning functionality
 - [ ] Add recipe database integration
 - [ ] Create personalized meal suggestions
 - [ ] Add progress tracking and visualization
 - [ ] Implement export functionality for reports
 
-### 🔜 Testing and Quality Assurance
+### Testing and Quality Assurance
 - [ ] Add property-based testing for core calculations
 - [ ] Implement integration tests for all API endpoints
 - [ ] Add performance testing
 - [ ] Implement security testing
 - [ ] Add accessibility testing
 
-### 🔜 Deployment and Operations
+### Deployment and Operations
 - [ ] Set up continuous deployment pipeline
 - [ ] Implement monitoring and alerting
 - [ ] Add backup and recovery procedures
 - [ ] Optimize for cloud deployment
 - [ ] Implement rate limiting and security measures
 
-### 🔜 Performance Optimization
+### Performance Optimization
 - [ ] Optimize database queries
 - [ ] Implement caching strategies
 - [ ] Reduce API response times
@@ -179,14 +190,14 @@ This document tracks the progress of the BMI App project, showing what has been 
 
 ## Future Enhancements
 
-### 💡 Advanced Features
+### Advanced Features
 - [ ] Add AI-powered nutrition recommendations
 - [ ] Implement personalized workout plans
 - [ ] Add social features and community support
 - [ ] Create mobile app versions
 - [ ] Implement offline functionality
 
-### 💡 Integration Opportunities
+### Integration Opportunities
 - [ ] Integrate with fitness trackers
 - [ ] Connect to food delivery services
 - [ ] Integrate with healthcare systems
@@ -196,9 +207,12 @@ This document tracks the progress of the BMI App project, showing what has been 
 ## Notes
 
 This TODO list is organized by priority and status:
-- ✅ Completed tasks
-- ⏳ In progress tasks
-- 🔜 Pending tasks (next to implement)
-- 💡 Future enhancements (ideas for later)
+- Completed tasks
+- In progress tasks
+- Current issues and problems
+- Pending tasks (next to implement)
+- Future enhancements (ideas for later)
 
-The list will be updated regularly as tasks are completed and new ones are identified.
+The list will be updated regularly as tasks are completed and new ones are identified. All team members should review this list regularly and update the status of items they are working on.
+
+For information on how to update this file and other TODO files, see [TODO_UPDATE_PROCESS.md](TODO_UPDATE_PROCESS.md)
