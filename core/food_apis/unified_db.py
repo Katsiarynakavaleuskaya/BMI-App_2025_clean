@@ -425,7 +425,9 @@ class UnifiedFoodDatabase:
 
         # Try delegated helper from USDA client if available (enables easy mocking in tests)
         try:
-            from .usda_client import get_common_foods_database as _get_common_usda  # type: ignore
+            from .usda_client import (
+                get_common_foods_database as _get_common_usda,  # type: ignore
+            )
         except Exception:  # pragma: no cover - optional import
             _get_common_usda = None  # type: ignore
 
