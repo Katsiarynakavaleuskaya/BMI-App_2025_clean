@@ -1,12 +1,12 @@
 """
 Tests for Web Interface Spanish Language Support
 
-This test ensures that the web interface correctly supports Spanish language selection.
+This test ensures that the web interface correctly supports Spanish
+language selection.
 """
 
 import os
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app import app

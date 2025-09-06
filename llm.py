@@ -61,10 +61,18 @@ def get_provider():
     if val == "grok":
         if GrokProvider:
             # пример: можно пробросить ключ и модель через env
-            api_key = os.getenv("GROK_API_KEY") or os.getenv("XAI_API_KEY") or ""
+            api_key = (
+                os.getenv("GROK_API_KEY")
+                or os.getenv("XAI_API_KEY")
+                or ""
+            )
             model = os.getenv("GROK_MODEL", "grok-4-latest")
             endpoint = os.getenv("GROK_ENDPOINT", "https://api.x.ai/v1")
-            return GrokProvider(endpoint=endpoint, api_key=api_key, model=model)
+            return GrokProvider(
+                endpoint=endpoint,
+                api_key=api_key,
+                model=model,
+            )
         # Fallback when real provider unavailable
         return GrokLiteProvider()
 
@@ -81,4 +89,3 @@ def get_provider():
 
     # неизвестное значение — считаем, что провайдера нет
     return None
-

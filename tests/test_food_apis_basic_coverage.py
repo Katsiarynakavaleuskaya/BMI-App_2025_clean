@@ -32,7 +32,10 @@ class TestUnifiedFoodDatabase:
     @patch('core.food_apis.unified_db.USDAClient')
     def test_unified_food_database_cache_operations(self, mock_usda_class):
         """Test cache loading and saving."""
-        from core.food_apis.unified_db import UnifiedFoodDatabase, UnifiedFoodItem
+        from core.food_apis.unified_db import (
+            UnifiedFoodDatabase,
+            UnifiedFoodItem,
+        )
 
         mock_usda_instance = MagicMock()
         mock_usda_class.return_value = mock_usda_instance
@@ -91,7 +94,10 @@ class TestDatabaseUpdateManager:
 
     def test_database_version_operations(self):
         """Test database version tracking."""
-        from core.food_apis.update_manager import DatabaseUpdateManager, DatabaseVersion
+        from core.food_apis.update_manager import (
+            DatabaseUpdateManager,
+            DatabaseVersion,
+        )
 
         with tempfile.TemporaryDirectory() as temp_dir:
             manager = DatabaseUpdateManager(cache_dir=temp_dir)

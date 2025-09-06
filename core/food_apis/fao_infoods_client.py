@@ -4,12 +4,12 @@ FAO/INFOODS Food Composition Database Client
 RU: Клиент для работы с базами данных FAO/INFOODS.
 EN: Client for FAO/INFOODS food composition databases.
 
-This module provides access to the FAO/INFOODS global food 
+This module provides access to the FAO/INFOODS global food
 composition databases,
-including regional databases like WAFCT and specialized 
+including regional databases like WAFCT and specialized
 databases like uPulses.
 
-Data Access: FAO/INFOODS databases are typically distributed 
+Data Access: FAO/INFOODS databases are typically distributed
 as Excel or CSV files.
 For this implementation, we'll work with locally downloaded
 CSV files.
@@ -95,9 +95,9 @@ class FAOInfoodsClient:
     RU: Клиент для работы с базами данных FAO/INFOODS.
     EN: Client for FAO/INFOODS databases.
 
-    Provides methods to load and search food composition data from 
+    Provides methods to load and search food composition data from
     FAO/INFOODS databases.
-    Since these databases are typically distributed as static files, 
+    Since these databases are typically distributed as static files,
     we'll work with
     locally stored CSV files.
     """
@@ -189,7 +189,7 @@ class FAOInfoodsClient:
 
         Args:
             query: Search query (e.g., "millet")
-            database_name: Specific database to search in, or None to 
+            database_name: Specific database to search in, or None to
                 search all
 
         Returns:

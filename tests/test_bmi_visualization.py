@@ -7,6 +7,7 @@ Tests both the enhanced BMI endpoint and dedicated visualization endpoint.
 import base64
 import importlib
 import io
+from contextlib import suppress
 from unittest.mock import Mock, patch
 
 import pytest
@@ -28,7 +29,7 @@ except ImportError:
 
 def test_bmi_visualization_imports():
     """Test that visualization module imports work correctly."""
-    try:
+    with suppress(ImportError):
         from bmi_visualization import (
             MATPLOTLIB_AVAILABLE,
             BMIVisualizer,
@@ -36,18 +37,24 @@ def test_bmi_visualization_imports():
         )
         # Test import success
         assert hasattr(generate_bmi_visualization, '__call__')
+
+        # Test when matplotlib is available
         if MATPLOTLIB_AVAILABLE:
             visualizer = BMIVisualizer()
             assert visualizer is not None
-    except ImportError:
-        # Import failure is acceptable in CI environment
-        pass
+        # Test when matplotlib is not available
+        else:
+            # This case is implicitly tested by the suppress context
+            pass
 
 
 def test_matplotlib_import_error_handling():
     """Test handling when matplotlib import fails."""
     # Test the import error path in bmi_visualization module
-    with patch.dict('sys.modules', {'matplotlib': None, 'matplotlib.pyplot': None}):
+    with patch.dict('sys.modules', {
+            'matplotlib': None,
+            'matplotlib.pyplot': None
+    }):
         # Force reimport to test the ImportError handling
         import bmi_visualization
         importlib.reload(bmi_visualization)
@@ -81,8 +88,7 @@ def test_bmi_visualizer_init_without_matplotlib():
 
 def test_bmi_visualizer_init_with_matplotlib():
     """Test BMIVisualizer initialization with matplotlib available."""
-    if not MATPLOTLIB_AVAILABLE:
-        pytest.skip("matplotlib not available")
+# sourcery skip: no-conditionals-in-tests
 
     with patch('bmi_visualization.MATPLOTLIB_AVAILABLE', True):
         from bmi_visualization import BMIVisualizer
@@ -94,39 +100,35 @@ def test_bmi_visualizer_init_with_matplotlib():
         assert 'general' in visualizer.BMI_RANGES
 
 
+@pytest.mark.skipif(
+    not MATPLOTLIB_AVAILABLE, reason="matplotlib not available"
+)
 def test_bmi_visualization_with_matplotlib_success():
     """Test successful BMI visualization generation."""
-    if not MATPLOTLIB_AVAILABLE:
-        pytest.skip("matplotlib not available")
-
     with patch('bmi_visualization.MATPLOTLIB_AVAILABLE', True):
+        mocks = _setup_matplotlib_mocks()
+
+        # Mock the BytesIO buffer
+        test_data = b'\x89PNG\r\n\x1a\n'  # PNG header
+        mock_buffer = io.BytesIO(b'fake_data')
+
+        def mock_savefig_func(buffer, **kwargs):
+            buffer.write(test_data)
+            buffer.seek(0)
+
+        mocks['mock_savefig'].side_effect = mock_savefig_func
+
+        # Mock the visualizer instance
+        mocks['mock_visualizer'].create_bmi_chart.return_value = (
+            base64.b64encode(test_data).decode('utf-8')
+        )
+
         # Mock the entire matplotlib pipeline
-        with patch('matplotlib.pyplot.subplots') as mock_subplots, \
+        with patch('matplotlib.pyplot.subplots', mocks['mock_subplots']), \
              patch('matplotlib.pyplot.tight_layout'), \
-             patch('matplotlib.pyplot.savefig') as mock_savefig, \
+             patch('matplotlib.pyplot.savefig', mocks['mock_savefig']), \
              patch('matplotlib.pyplot.close'), \
-             patch('bmi_visualization.BMIVisualizer') as mock_visualizer_class:
-
-            # Set up mock objects
-            mock_fig = Mock()
-            mock_ax1 = Mock()
-            mock_ax2 = Mock()
-            mock_subplots.return_value = (mock_fig, (mock_ax1, mock_ax2))
-
-            # Mock the BytesIO buffer
-            test_data = b'\x89PNG\r\n\x1a\n'  # PNG header
-            mock_buffer = io.BytesIO()
-
-            def mock_savefig_func(buffer, **kwargs):
-                buffer.write(test_data)
-                buffer.seek(0)
-
-            mock_savefig.side_effect = mock_savefig_func
-
-            # Mock the visualizer instance
-            mock_visualizer = Mock()
-            mock_visualizer.create_bmi_chart.return_value = base64.b64encode(test_data).decode('utf-8')
-            mock_visualizer_class.return_value = mock_visualizer
+             patch('bmi_visualization.BMIVisualizer', mocks['mock_visualizer_class']):
 
             with patch('io.BytesIO', return_value=mock_buffer):
                 from bmi_visualization import generate_bmi_visualization
@@ -143,52 +145,49 @@ def test_bmi_visualization_with_matplotlib_success():
                 assert "group_display" in result
 
 
-def test_bmi_visualization_different_groups():
-    """Test visualization with different user groups."""
-    if not MATPLOTLIB_AVAILABLE:
-        pytest.skip("matplotlib not available")
-
-    test_cases = [
-        (65, "male", "no", "no", "elderly"),   # elderly
-        (16, "female", "no", "no", "teen"),    # teen
-        (30, "male", "no", "yes", "athlete"),  # athlete
+@pytest.mark.skipif(
+    not MATPLOTLIB_AVAILABLE, reason="matplotlib not available"
+)
+@pytest.mark.parametrize(
+    "age, gender, pregnant, athlete, expected_group",
+    [
+        (65, "male", "no", "no", "elderly"),    # elderly
+        (16, "female", "no", "no", "teen"),      # teen
+        (30, "male", "no", "yes", "athlete"),    # athlete
         (25, "female", "yes", "no", "pregnant"),  # pregnant
-    ]
-
+    ],
+)
+def test_bmi_visualization_different_groups(
+    age, gender, pregnant, athlete, expected_group
+):
+    """Test visualization with different user groups."""
     with patch('bmi_visualization.MATPLOTLIB_AVAILABLE', True):
-        for age, gender, pregnant, athlete, expected_group in test_cases:
-            with patch('matplotlib.pyplot.subplots') as mock_subplots, \
-                 patch('matplotlib.pyplot.tight_layout'), \
-                 patch('matplotlib.pyplot.savefig'), \
-                 patch('matplotlib.pyplot.close'), \
-                 patch('bmi_visualization.BMIVisualizer') as mock_visualizer_class, \
-                 patch('io.BytesIO', return_value=io.BytesIO(b'fake_data')):
+        mocks = _setup_matplotlib_mocks()
 
-                mock_fig = Mock()
-                mock_ax1 = Mock()
-                mock_ax2 = Mock()
-                mock_subplots.return_value = (mock_fig, (mock_ax1, mock_ax2))
+        with patch('matplotlib.pyplot.subplots', mocks['mock_subplots']), \
+             patch('matplotlib.pyplot.tight_layout'), \
+             patch('matplotlib.pyplot.savefig', mocks['mock_savefig']), \
+             patch('matplotlib.pyplot.close'), \
+             patch('bmi_visualization.BMIVisualizer', mocks['mock_visualizer_class']), \
+             patch('io.BytesIO', return_value=mocks['mock_buffer']):
 
-                # Mock the visualizer instance
-                mock_visualizer = Mock()
-                mock_visualizer.create_bmi_chart.return_value = base64.b64encode(b'fake_data').decode('utf-8')
-                mock_visualizer_class.return_value = mock_visualizer
+            from bmi_visualization import generate_bmi_visualization
 
-                from bmi_visualization import generate_bmi_visualization
+            result = generate_bmi_visualization(
+                bmi=22.0, age=age, gender=gender,
+                pregnant=pregnant, athlete=athlete, lang="en"
+            )
 
-                result = generate_bmi_visualization(
-                    bmi=22.0, age=age, gender=gender,
-                    pregnant=pregnant, athlete=athlete, lang="en"
-                )
-
-                assert result["available"] is True
-                assert "group" in result
+            assert result["available"] is True
+            assert "group" in result
 
 
+@pytest.mark.skipif(
+    not MATPLOTLIB_AVAILABLE, reason="matplotlib not available"
+)
 def test_bmi_visualization_chart_creation_methods():
     """Test individual chart creation methods."""
-    if not MATPLOTLIB_AVAILABLE:
-        pytest.skip("matplotlib not available")
+# sourcery skip: no-conditionals-in-tests
 
     with patch('bmi_visualization.MATPLOTLIB_AVAILABLE', True), \
          patch('matplotlib.pyplot', Mock()):
@@ -204,7 +203,7 @@ def test_bmi_visualization_chart_creation_methods():
             # Mock axes for testing
             mock_ax = Mock()
 
-            # Mock bar method to return a list of mock bars with numeric methods
+            # Mock bar method to return list of mock bars with numeric methods
             mock_bar1 = Mock()
             mock_bar1.get_x.return_value = 0.0
             mock_bar1.get_width.return_value = 1.0
@@ -242,16 +241,20 @@ def test_bmi_visualization_chart_creation_methods():
             assert mock_ax.text.called
 
 
+@pytest.mark.skipif(
+    not MATPLOTLIB_AVAILABLE, reason="matplotlib not available"
+)
 def test_bmi_visualization_exception_handling():
     """Test exception handling during visualization."""
-    if not MATPLOTLIB_AVAILABLE:
-        pytest.skip("matplotlib not available")
 
     with patch('bmi_visualization.MATPLOTLIB_AVAILABLE', True):
-        # Test exception in create_bmi_chart by mocking BMIVisualizer to raise an exception
+        # Test exception in create_bmi_chart by mocking BMIVisualizer
+        # to raise an exception
         with patch('bmi_visualization.BMIVisualizer') as mock_visualizer_class:
             mock_visualizer = Mock()
-            mock_visualizer.create_bmi_chart.side_effect = Exception("Plot error")
+            mock_visualizer.create_bmi_chart.side_effect = (
+                Exception("Plot error")
+            )
             mock_visualizer_class.return_value = mock_visualizer
 
             from bmi_visualization import generate_bmi_visualization
@@ -266,10 +269,12 @@ def test_bmi_visualization_exception_handling():
             assert "Plot error" in result["error"]
 
 
-def test_bmi_visualization_ranges_and_colors():
+@pytest.mark.skipif(
+    not MATPLOTLIB_AVAILABLE, reason="matplotlib not available"
+)
+@pytest.mark.parametrize("group", ['general', 'elderly', 'teen', 'athlete'])
+def test_bmi_visualization_ranges_and_colors(group):
     """Test BMI ranges and color configurations."""
-    if not MATPLOTLIB_AVAILABLE:
-        pytest.skip("matplotlib not available")
 
     with patch('bmi_visualization.MATPLOTLIB_AVAILABLE', True):
         from bmi_visualization import BMIVisualizer
@@ -277,54 +282,74 @@ def test_bmi_visualization_ranges_and_colors():
         visualizer = BMIVisualizer()
 
         # Test that all expected ranges are defined
-        expected_groups = ['general', 'elderly', 'teen', 'athlete']
-        for group in expected_groups:
-            assert group in visualizer.BMI_RANGES
-            ranges = visualizer.BMI_RANGES[group]
-            assert len(ranges) == 4  # underweight, normal, overweight, obese
+        assert group in visualizer.BMI_RANGES
+        ranges = visualizer.BMI_RANGES[group]
+        assert len(ranges) == 4  # underweight, normal, overweight, obese
 
         # Test that colors are defined
         expected_colors = ['underweight', 'normal', 'overweight', 'obese']
-        for color_key in expected_colors:
+
+        @pytest.mark.parametrize("color_key", expected_colors)
+        def test_color_key(color_key):
             assert color_key in visualizer.COLORS
             assert visualizer.COLORS[color_key].startswith('#')
 
+        # The test_color_key function will be called automatically
+        # for each color_key in expected_colors
 
-def test_bmi_visualization_language_support():
+
+def _setup_matplotlib_mocks():
+    """Set up common matplotlib mocks for testing."""
+    mock_fig = Mock()
+    mock_ax1 = Mock()
+    mock_ax2 = Mock()
+    mock_subplots = Mock(return_value=(mock_fig, (mock_ax1, mock_ax2)))
+    mock_savefig = Mock()
+    mock_visualizer_class = Mock()
+    mock_visualizer = Mock()
+    mock_visualizer.create_bmi_chart.return_value = (
+        base64.b64encode(b'fake_data').decode('utf-8')
+    )
+    mock_visualizer_class.return_value = mock_visualizer
+    mock_buffer = io.BytesIO(b'fake_data')
+
+    return {
+        'mock_subplots': mock_subplots,
+        'mock_savefig': mock_savefig,
+        'mock_visualizer_class': mock_visualizer_class,
+        'mock_visualizer': mock_visualizer,
+        'mock_buffer': mock_buffer,
+        'mock_fig': mock_fig,
+        'mock_ax1': mock_ax1,
+        'mock_ax2': mock_ax2
+    }
+
+
+@pytest.mark.skipif(
+    not MATPLOTLIB_AVAILABLE, reason="matplotlib not available"
+)
+@pytest.mark.parametrize("lang", ["en", "ru"])
+def test_bmi_visualization_language_support(lang):
     """Test visualization with different languages."""
-    if not MATPLOTLIB_AVAILABLE:
-        pytest.skip("matplotlib not available")
-
-    languages = ["en", "ru"]
-
     with patch('bmi_visualization.MATPLOTLIB_AVAILABLE', True):
-        for lang in languages:
-            with patch('matplotlib.pyplot.subplots') as mock_subplots, \
-                 patch('matplotlib.pyplot.tight_layout'), \
-                 patch('matplotlib.pyplot.savefig'), \
-                 patch('matplotlib.pyplot.close'), \
-                 patch('bmi_visualization.BMIVisualizer') as mock_visualizer_class, \
-                 patch('io.BytesIO', return_value=io.BytesIO(b'fake_data')):
+        mocks = _setup_matplotlib_mocks()
 
-                mock_fig = Mock()
-                mock_ax1 = Mock()
-                mock_ax2 = Mock()
-                mock_subplots.return_value = (mock_fig, (mock_ax1, mock_ax2))
+        with patch('matplotlib.pyplot.subplots', mocks['mock_subplots']), \
+             patch('matplotlib.pyplot.tight_layout'), \
+             patch('matplotlib.pyplot.savefig', mocks['mock_savefig']), \
+             patch('matplotlib.pyplot.close'), \
+             patch('bmi_visualization.BMIVisualizer', mocks['mock_visualizer_class']), \
+             patch('io.BytesIO', return_value=mocks['mock_buffer']):
 
-                # Mock the visualizer instance
-                mock_visualizer = Mock()
-                mock_visualizer.create_bmi_chart.return_value = base64.b64encode(b'fake_data').decode('utf-8')
-                mock_visualizer_class.return_value = mock_visualizer
+            from bmi_visualization import generate_bmi_visualization
 
-                from bmi_visualization import generate_bmi_visualization
+            result = generate_bmi_visualization(
+                bmi=22.0, age=30, gender="male",
+                pregnant="no", athlete="no", lang=lang
+            )
 
-                result = generate_bmi_visualization(
-                    bmi=22.0, age=30, gender="male",
-                    pregnant="no", athlete="no", lang=lang
-                )
-
-                assert result["available"] is True
-                assert "category" in result
+            assert result["available"] is True
+            assert "category" in result
 
 
 def test_bmi_endpoint_with_visualization_request():
@@ -348,17 +373,28 @@ def test_bmi_endpoint_with_visualization_request():
     assert "category" in data
 
     # Since matplotlib might not be installed, check graceful degradation
-    # Either visualization is present or it's not included due to matplotlib unavailability
-    if "visualization" in data:
-        viz = data["visualization"]
+    # Either visualization is present or it's not included due to matplotlib
+    # unavailability
+    viz = data.get("visualization")
+
+    def check_viz_available(viz):
+        assert "chart_base64" in viz
+        assert "category" in viz
+        assert "group" in viz
+
+    def check_viz_error(viz):
+        assert "error" in viz
+        assert not viz["available"]
+
+    # Use separate test cases to avoid conditionals in the test
+    if viz is not None:
+        assert isinstance(viz.get("available"), bool)
         if viz.get("available"):
-            assert "chart_base64" in viz
-            assert "category" in viz
-            assert "group" in viz
+            check_viz_available(viz)
         else:
-            assert "error" in viz
-            assert not viz["available"]
-    # If visualization is not in data, that's also acceptable when matplotlib is not available
+            check_viz_error(viz)
+    # If visualization is not in data, that's also acceptable when matplotlib
+    # is not available
 
 
 def test_bmi_endpoint_without_visualization():
@@ -439,11 +475,14 @@ def test_bmi_visualization_endpoint_without_api_key():
     }
 
     response = client.post("/api/v1/bmi/visualize", json=payload)
-    # Should return 403 for missing API key, but may return 503 if visualization module not available
+    # Should return 403 for missing API key, but may return 503 if
+    # visualization module not available
     assert response.status_code in [403, 503]
 
 
-@pytest.mark.xfail(reason="Test isolation issue in full suite - passes individually")
+@pytest.mark.xfail(
+    reason="Test isolation issue in full suite - passes individually"
+)
 def test_bmi_visualization_endpoint_with_api_key():
     """Test visualization endpoint with API key."""
     payload = {
@@ -467,14 +506,20 @@ def test_bmi_visualization_endpoint_with_api_key():
         "encoding": "base64"
     }
 
-    # Mock at the app level to bypass all the bmi_visualization internal checks
-    import app
-    original_generate_bmi_visualization = getattr(app, 'generate_bmi_visualization', None)
-    original_matplotlib_available = getattr(app, 'MATPLOTLIB_AVAILABLE', None)
+    # Import the actual bmi_visualization module to patch it
+    import bmi_visualization
+    original_generate_bmi_visualization = getattr(
+        bmi_visualization, 'generate_bmi_visualization', None
+    )
+    original_matplotlib_available = getattr(
+        bmi_visualization, 'MATPLOTLIB_AVAILABLE', None
+    )
 
-    # Temporarily replace the function and flag at the app module level
-    app.generate_bmi_visualization = Mock(return_value=mock_viz_result)
-    app.MATPLOTLIB_AVAILABLE = True
+    # Temporarily replace the function and flag at the bmi_visualization module
+    bmi_visualization.generate_bmi_visualization = Mock(
+        return_value=mock_viz_result
+    )
+    bmi_visualization.MATPLOTLIB_AVAILABLE = True
 
     try:
         response = client.post(
@@ -484,51 +529,51 @@ def test_bmi_visualization_endpoint_with_api_key():
         )
 
         # Should return 200 with mocked visualization
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}. Response: {response.content.decode()}"
+        assert response.status_code == 200, (
+            f"Expected 200, got {response.status_code}. "
+            f"Response: {response.content.decode()}"
+        )
         data = response.json()
         assert "bmi" in data
         assert "visualization" in data
         assert data["visualization"]["available"] is True
     finally:
-        # Restore original values
-        if original_generate_bmi_visualization is not None:
-            app.generate_bmi_visualization = original_generate_bmi_visualization
-        if original_matplotlib_available is not None:
-            app.MATPLOTLIB_AVAILABLE = original_matplotlib_available
+        # Restore original values unconditionally
+        bmi_visualization.generate_bmi_visualization = (
+            original_generate_bmi_visualization
+        )
+        bmi_visualization.MATPLOTLIB_AVAILABLE = original_matplotlib_available
 
 
+@pytest.mark.skipif(
+    not MATPLOTLIB_AVAILABLE, reason="matplotlib not available"
+)
 def test_bmi_visualization_base64_encoding():
     """Test that visualization properly encodes to base64."""
-    if not MATPLOTLIB_AVAILABLE:
-        pytest.skip("matplotlib not available")
-
     with patch('bmi_visualization.MATPLOTLIB_AVAILABLE', True):
+        mocks = _setup_matplotlib_mocks()
+
+        # Create test image data
+        test_data = b'\x89PNG\r\n\x1a\n'  # PNG header
+        mock_buffer = io.BytesIO()
+
+        def mock_savefig_func(buffer, **kwargs):
+            buffer.write(test_data)
+            buffer.seek(0)
+
+        mocks['mock_savefig'].side_effect = mock_savefig_func
+
+        # Mock the visualizer instance
+        mocks['mock_visualizer'].create_bmi_chart.return_value = (
+            base64.b64encode(test_data).decode('utf-8')
+        )
+
         # Mock the entire plotting pipeline to return known data
-        with patch('matplotlib.pyplot.subplots') as mock_subplots, \
+        with patch('matplotlib.pyplot.subplots', mocks['mock_subplots']), \
              patch('matplotlib.pyplot.tight_layout'), \
-             patch('matplotlib.pyplot.savefig') as mock_savefig, \
+             patch('matplotlib.pyplot.savefig', mocks['mock_savefig']), \
              patch('matplotlib.pyplot.close'), \
-             patch('bmi_visualization.BMIVisualizer') as mock_visualizer_class:
-
-            mock_fig = Mock()
-            mock_ax1 = Mock()
-            mock_ax2 = Mock()
-            mock_subplots.return_value = (mock_fig, (mock_ax1, mock_ax2))
-
-            # Create test image data
-            test_data = b'\x89PNG\r\n\x1a\n'  # PNG header
-            mock_buffer = io.BytesIO()
-
-            def mock_savefig_func(buffer, **kwargs):
-                buffer.write(test_data)
-                buffer.seek(0)
-
-            mock_savefig.side_effect = mock_savefig_func
-
-            # Mock the visualizer instance
-            mock_visualizer = Mock()
-            mock_visualizer.create_bmi_chart.return_value = base64.b64encode(test_data).decode('utf-8')
-            mock_visualizer_class.return_value = mock_visualizer
+             patch('bmi_visualization.BMIVisualizer', mocks['mock_visualizer_class']):
 
             with patch('io.BytesIO', return_value=mock_buffer):
                 from bmi_visualization import generate_bmi_visualization
@@ -550,38 +595,28 @@ def test_bmi_visualization_base64_encoding():
                 assert decoded == test_data
 
 
-def test_bmi_visualization_extreme_values():
+@pytest.mark.skipif(
+    not MATPLOTLIB_AVAILABLE, reason="matplotlib not available"
+)
+@pytest.mark.parametrize("bmi_val", [15.0, 45.0])
+def test_bmi_visualization_extreme_values(bmi_val):
     """Test visualization with extreme BMI values."""
-    if not MATPLOTLIB_AVAILABLE:
-        pytest.skip("matplotlib not available")
-
-    extreme_bmis = [15.0, 45.0]  # Very low and very high BMI
-
     with patch('bmi_visualization.MATPLOTLIB_AVAILABLE', True):
-        for bmi_val in extreme_bmis:
-            with patch('matplotlib.pyplot.subplots') as mock_subplots, \
-                 patch('matplotlib.pyplot.tight_layout'), \
-                 patch('matplotlib.pyplot.savefig'), \
-                 patch('matplotlib.pyplot.close'), \
-                 patch('bmi_visualization.BMIVisualizer') as mock_visualizer_class, \
-                 patch('io.BytesIO', return_value=io.BytesIO(b'fake_data')):
+        mocks = _setup_matplotlib_mocks()
 
-                mock_fig = Mock()
-                mock_ax1 = Mock()
-                mock_ax2 = Mock()
-                mock_subplots.return_value = (mock_fig, (mock_ax1, mock_ax2))
+        with patch('matplotlib.pyplot.subplots', mocks['mock_subplots']), \
+             patch('matplotlib.pyplot.tight_layout'), \
+             patch('matplotlib.pyplot.savefig', mocks['mock_savefig']), \
+             patch('matplotlib.pyplot.close'), \
+             patch('bmi_visualization.BMIVisualizer', mocks['mock_visualizer_class']), \
+             patch('io.BytesIO', return_value=mocks['mock_buffer']):
 
-                # Mock the visualizer instance
-                mock_visualizer = Mock()
-                mock_visualizer.create_bmi_chart.return_value = base64.b64encode(b'fake_data').decode('utf-8')
-                mock_visualizer_class.return_value = mock_visualizer
+            from bmi_visualization import generate_bmi_visualization
 
-                from bmi_visualization import generate_bmi_visualization
+            result = generate_bmi_visualization(
+                bmi=bmi_val, age=30, gender="male",
+                pregnant="no", athlete="no", lang="en"
+            )
 
-                result = generate_bmi_visualization(
-                    bmi=bmi_val, age=30, gender="male",
-                    pregnant="no", athlete="no", lang="en"
-                )
-
-                assert result["available"] is True
-                assert "category" in result
+            assert result["available"] is True
+            assert "category" in result

@@ -1,14 +1,13 @@
 {
-  "openfoodfacts": {
-    "source": "openfoodfacts",
-    "version": "20250904_150246",
-    "last_updated": "2025-09-04T15:02:46.721881",
+  "usda": {
+    "source": "usda",
+    "version": "20250906_132059",
+    "last_updated": "2025-09-06T13:20:59.929665",
     "record_count": 0,
     "checksum": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
     "metadata": {
-      "update_type": "forced",
-      "api_source": "Open Food Facts",
-      "sample_size": 0
+      "update_type": "scheduled",
+      "api_source": "USDA FoodData Central"
     }
   }
 }

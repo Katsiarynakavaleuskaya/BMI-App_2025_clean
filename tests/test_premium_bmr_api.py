@@ -229,6 +229,10 @@ class TestPremiumBMRAPI:
 
     def test_premium_bmr_missing_api_key(self):
         """Test Premium BMR API without API key."""
+        # Set APP_ENV to prod to enforce API key requirement
+        original_app_env = os.environ.get("APP_ENV")
+        os.environ["APP_ENV"] = "prod"
+
         payload = {
             "weight_kg": 70,
             "height_cm": 175,
@@ -244,6 +248,12 @@ class TestPremiumBMRAPI:
             assert response.status_code == 403
         else:
             assert response.status_code == 200
+
+        # Clean up
+        if original_app_env is not None:
+            os.environ["APP_ENV"] = original_app_env
+        elif "APP_ENV" in os.environ:
+            del os.environ["APP_ENV"]
 
     def test_premium_bmr_invalid_api_key(self):
         """Test Premium BMR API with invalid API key."""

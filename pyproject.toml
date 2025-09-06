@@ -6,7 +6,7 @@ asyncio_mode = "auto"
 [tool.ruff]
 line-length = 79
 target-version = "py310"
-exclude = ["*.md"]
+exclude = ["*.md", "TODO_UPDATE_PROCESS.md", "PROJECT_TODO.md", "TODO.md"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]

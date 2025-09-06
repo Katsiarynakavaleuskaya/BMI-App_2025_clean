@@ -1,33 +1,20 @@
+import inspect
 import logging
 import os
 import time
-from contextlib import suppress
+from contextlib import asynccontextmanager, suppress
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional
 
-try:
-    from prometheus_client import Counter, Histogram, generate_latest
-except ImportError:
-    pass
-
 if TYPE_CHECKING:
-    from core.exports import to_csv_day, to_csv_week, to_pdf_day, to_pdf_week
-
-# Add import for the premium week models
-try:
-    from app.routers.premium_week import WeekPlanRequest, WeekPlanResponse
-except ImportError:
-    WeekPlanResponse = dict
-    WeekPlanRequest = dict
-    Counter = None
-    Histogram = None
-    generate_latest = None
-
-import inspect
+    pass
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.routing import APIRoute
 from fastapi.security import APIKeyHeader
+
+# Import the security dependency
+from app.deps.security import get_api_key
 
 if TYPE_CHECKING:
     # Type hints for slowapi when not available at runtime
@@ -57,7 +44,8 @@ from pydantic import BaseModel, Field, StrictFloat, model_validator
 with suppress(ImportError):
     import dotenv
     # Avoid auto-loading .env during tests/CI to keep predictable defaults
-    if os.getenv("PYTEST_CURRENT_TEST") is None and os.getenv("APP_ENV", "").lower() not in {"test", "ci"}:
+    if (os.getenv("PYTEST_CURRENT_TEST") is None and
+        os.getenv("APP_ENV", "").lower() not in {"test", "ci"}):
         dotenv.load_dotenv()
 
 try:
@@ -87,15 +75,11 @@ except ImportError:
 
 from bmi_core import bmi_category, bmi_value
 
-# Add import for the new BMI Pro functions
-from core.bmi_extras import (
-    ffmi,
-    interpret_whr_ratio,
-    interpret_wht_ratio,
-    stage_obesity,
-    whr_ratio,
-    wht_ratio,
-)
+# Expose stage_obesity for tests to patch
+try:
+    from core.bmi_extras import stage_obesity  # type: ignore
+except Exception:  # pragma: no cover
+    stage_obesity = None  # type: ignore
 from core.food_apis.scheduler import (
     start_background_updates,
     stop_background_updates,
@@ -112,8 +96,10 @@ try:
 except Exception:  # pragma: no cover
     _scheduler_getter = None  # type: ignore
 
+
 async def get_update_scheduler():  # type: ignore[no-redef]
-    """Return the global update scheduler (wrapper to aid patching in tests)."""
+    """Return the global update scheduler (wrapper to aid patching in
+    tests)."""
     if _scheduler_getter is None:
         from core.food_apis.scheduler import (
             get_update_scheduler as _late_getter,  # type: ignore
@@ -127,8 +113,6 @@ from core.exports import to_csv_day, to_csv_week, to_pdf_day, to_pdf_week
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-from contextlib import asynccontextmanager
 
 
 # Lifespan event handler
@@ -199,16 +183,8 @@ async def log_requests(request: Request, call_next):
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
-def get_api_key(api_key: str = Depends(api_key_header)):
-    expected = os.getenv("API_KEY")
-    # Be tolerant to '-' vs '_' differences in test headers
-    expected_norm = (expected or "").strip()
-    api_key_norm = (api_key or "").strip()
-    expected_norm = expected_norm.replace('-', '_')
-    api_key_norm = api_key_norm.replace('-', '_')
-    if expected and api_key_norm != expected_norm:
-        raise HTTPException(status_code=403, detail="Invalid API Key")
-    return api_key
+# ---------- Helpers ----------
+
 
 
 # ---------- Helpers ----------
@@ -333,9 +309,12 @@ def normalize_flags(
     }
 
 
-def waist_risk(waist_cm: Optional[float], gender_male: bool, lang: Language) -> str:
+def waist_risk(waist_cm: Optional[float], gender_male: bool,
+               lang: Language) -> str:
     if waist_cm is None:
         return ""
+
+
     warn, high = (94, 102) if gender_male else (80, 88)
     if waist_cm >= high:
         return t(lang, "risk_high_waist")
@@ -356,14 +335,35 @@ async def root():
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>BMI Calculator 2025</title>
         <style>
-            body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
-            form { margin-bottom: 20px; }
-            input, button, select { display: block; margin: 10px 0; padding: 10px; width: 100%; }
-            .result { margin-top: 20px; padding: 10px; border: 1px solid #ccc; }
-            .language-selector { position: absolute; top: 20px; right: 20px; }
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            form {
+                margin-bottom: 20px;
+            }
+            input, button, select {
+                display: block;
+                margin: 10px 0;
+                padding: 10px;
+                width: 100%;
+            }
+            .result {
+                margin-top: 20px;
+                padding: 10px;
+                border: 1px solid #ccc;
+            }
+            .language-selector {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+            }
         </style>
-    </head>
-    <body>
+
+        </style>
+
         <div class="language-selector">
             <label for="language">Language:</label>
             <select id="language" onchange="changeLanguage()">
@@ -382,7 +382,7 @@ async def root():
             <input type="number" id="height" step="0.01" required>
 
             <label for="age" id="label_age">Age:</label>
-            <input type="number" id="age" required>
+            < <input type="number" id="age" required>
 
             <label for="gender" id="label_gender">Gender:</label>
             <select id="gender" required>
@@ -492,20 +492,34 @@ async def root():
 
                 // Update text elements
                 document.getElementById('title').textContent = t.title;
-                document.getElementById('label_weight').textContent = t.label_weight;
-                document.getElementById('label_height').textContent = t.label_height;
-                document.getElementById('label_age').textContent = t.label_age;
-                document.getElementById('label_gender').textContent = t.label_gender;
-                document.getElementById('option_male').textContent = t.option_male;
-                document.getElementById('option_female').textContent = t.option_female;
-                document.getElementById('label_pregnant').textContent = t.label_pregnant;
-                document.getElementById('option_pregnant_no').textContent = t.option_pregnant_no;
-                document.getElementById('option_pregnant_yes').textContent = t.option_pregnant_yes;
-                document.getElementById('label_athlete').textContent = t.label_athlete;
-                document.getElementById('option_athlete_no').textContent = t.option_athlete_no;
-                document.getElementById('option_athlete_yes').textContent = t.option_athlete_yes;
-                document.getElementById('label_waist').textContent = t.label_waist;
-                document.getElementById('button_calculate').textContent = t.button_calculate;
+                document.getElementById('label_weight').textContent =
+                    t.label_weight;
+                document.getElementById('label_height').textContent =
+                    t.label_height;
+                document.getElementById('label_age').textContent =
+                    t.label_age;
+                document.getElementById('label_gender').textContent =
+                    t.label_gender;
+                document.getElementById('option_male').textContent =
+                    t.option_male;
+                document.getElementById('option_female').textContent =
+                    t.option_female;
+                document.getElementById('label_pregnant').textContent =
+                    t.label_pregnant;
+                document.getElementById('option_pregnant_no').textContent =
+                    t.option_pregnant_no;
+                document.getElementById('option_pregnant_yes').textContent =
+                    t.option_pregnant_yes;
+                document.getElementById('label_athlete').textContent =
+                    t.label_athlete;
+                document.getElementById('option_athlete_no').textContent =
+                    t.option_athlete_no;
+                document.getElementById('option_athlete_yes').textContent =
+                    t.option_athlete_yes;
+                document.getElementById('label_waist').textContent =
+                    t.label_waist;
+                document.getElementById('button_calculate').textContent =
+                    t.button_calculate;
 
                 // Set language selector
                 document.getElementById('language').value = langCode;
@@ -517,24 +531,32 @@ async def root():
 
             // Change language function
             function changeLanguage() {
-                const lang = document.getElementById('language').value;
-                // Set cookie
-                document.cookie = `lang=${lang}; path=/`;
-                // Update UI
-                updateUILanguage(lang);
+                const selectedLang = document.getElementById('language').value;
+                // Set cookie with 1 year expiration
+                const date = new Date();
+                date.setTime(date.getTime() + (365*24*60*60*1000));
+                document.cookie =
+                    "lang=" + selectedLang +
+                    ";expires=" + date.toUTCString() +
+                    ";path=/";
             }
 
-            document.getElementById('bmiForm').addEventListener('submit', async (e) => {
+            document.getElementById('bmiForm').addEventListener('submit',
+                async (e) => {
                 e.preventDefault();
                 const lang = getLanguage();
                 const data = {
-                    weight_kg: parseFloat(document.getElementById('weight').value),
-                    height_m: parseFloat(document.getElementById('height').value),
+                    weight_kg: parseFloat(
+                        document.getElementById('weight').value),
+                    height_m: parseFloat(
+                        document.getElementById('height').value),
                     age: parseInt(document.getElementById('age').value),
                     gender: document.getElementById('gender').value,
                     pregnant: document.getElementById('pregnant').value,
                     athlete: document.getElementById('athlete').value,
-                    waist_cm: document.getElementById('waist').value ? parseFloat(document.getElementById('waist').value) : null,
+                    waist_cm: document.getElementById('waist').value ?
+                        parseFloat(
+                            document.getElementById('waist').value) : null,
                     lang: lang
                 };
 
@@ -552,10 +574,12 @@ async def root():
                     `;
                     document.getElementById('result').style.display = 'block';
                 } catch (error) {
-                    document.getElementById('result').innerHTML = '<p>Error calculating BMI</p>';
+                    document.getElementById('result').innerHTML =
+                        '<p>Error calculating BMI</p>';
                     document.getElementById('result').style.display = 'block';
                 }
             });
+
         </script>
     </body>
     </html>
@@ -601,10 +625,10 @@ async def bmi_endpoint(req: BMIRequest):
                 else getattr(_module, 'generate_bmi_visualization', None)
             )
             _mpl = (
-            getattr(_pkg, 'MATPLOTLIB_AVAILABLE', False)
-            if _pkg and hasattr(_pkg, 'MATPLOTLIB_AVAILABLE')
-            else getattr(_module, 'MATPLOTLIB_AVAILABLE', False)
-        )
+                getattr(_pkg, 'MATPLOTLIB_AVAILABLE', False)
+                if _pkg and hasattr(_pkg, 'MATPLOTLIB_AVAILABLE')
+                else getattr(_module, 'MATPLOTLIB_AVAILABLE', False)
+            )
             if _viz:
                 viz_result = _viz(
                     bmi=bmi, age=req.age, gender=req.gender,
@@ -614,7 +638,10 @@ async def bmi_endpoint(req: BMIRequest):
                     result["visualization"] = viz_result
                 elif not _mpl:
                     result["visualization"] = {
-                        "error": "Visualization not available - matplotlib not installed",
+                        "error": (
+                            "Visualization not available - "
+                            "matplotlib not installed"
+                        ),
                         "available": False
                     }
 
@@ -655,7 +682,11 @@ async def bmi_endpoint(req: BMIRequest):
             if _pkg and hasattr(_pkg, 'generate_bmi_visualization')
             else getattr(_module, 'generate_bmi_visualization', None)
         )
-        _mpl = getattr(_pkg, 'MATPLOTLIB_AVAILABLE', False) if _pkg and hasattr(_pkg, 'MATPLOTLIB_AVAILABLE') else getattr(_module, 'MATPLOTLIB_AVAILABLE', False)
+        _mpl = (
+            getattr(_pkg, 'MATPLOTLIB_AVAILABLE', False)
+            if _pkg and hasattr(_pkg, 'MATPLOTLIB_AVAILABLE')
+            else getattr(_module, 'MATPLOTLIB_AVAILABLE', False)
+        )
         if _viz:
             viz_result = _viz(
                 bmi=bmi, age=req.age, gender=req.gender,
@@ -665,7 +696,10 @@ async def bmi_endpoint(req: BMIRequest):
                 result["visualization"] = viz_result
             elif not _mpl:
                 result["visualization"] = {
-                    "error": "Visualization not available - matplotlib not installed",
+                    "error": (
+                        "Visualization not available - "
+                        "matplotlib not installed"
+                    ),
                     "available": False
                 }
 
@@ -723,7 +757,10 @@ async def plan_endpoint(req: BMIRequest):
 
 
 @app.post("/api/v1/bmi/visualize")
-async def bmi_visualize_endpoint(req: BMIRequest, api_key: str = Depends(get_api_key)):
+async def bmi_visualize_endpoint(
+    req: BMIRequest,
+    api_key: str = Depends(get_api_key)
+):
     """Generate BMI visualization chart."""
     import sys as _sys
     _pkg = _sys.modules.get('app')
@@ -761,7 +798,12 @@ async def bmi_visualize_endpoint(req: BMIRequest, api_key: str = Depends(get_api
             pregnant=req.pregnant, athlete=req.athlete, lang=req.lang
         )
     except Exception as e:
-        raise HTTPException(status_code=503, detail="Visualization generation failed") from e
+        raise HTTPException(
+            status_code=503,
+            detail="Visualization generation failed"
+        ) from e
+
+
 
     if not viz_result.get("available"):
         err_msg = viz_result.get("error")
@@ -815,7 +857,10 @@ async def insight(req: InsightRequest):
     if flag_raw is not None:
         flag = str(flag_raw).strip().lower()
         if flag in {"0", "false", "no", "off"}:
-            raise HTTPException(status_code=503, detail="insight feature disabled")
+            raise HTTPException(
+                status_code=503,
+                detail="insight feature disabled"
+            )
 
     # 1) Provider must be configured
     try:
@@ -877,6 +922,35 @@ async def privacy():
 if get_bodyfat_router is not None:
     app.include_router(get_bodyfat_router(), prefix="/api/v1")
 
+# Include BMI Pro router as single source of truth
+_bmi_pro = None
+try:
+    from app.routers import bmi_pro
+    _bmi_pro = bmi_pro
+except Exception:
+    # If importing as package fails due to module name collision (app.py),
+    # load the router module directly by path.
+    try:
+        import importlib.util
+        from pathlib import Path
+
+        _router_path = Path(__file__).parent / "routers" / "bmi_pro.py"
+        if _router_path.exists():
+            spec = importlib.util.spec_from_file_location(
+                "_bmi_pro_router", str(_router_path)
+            )
+            if spec and spec.loader:
+                _mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(_mod)  # type: ignore[attr-defined]
+                _bmi_pro = _mod  # type: ignore[assignment]
+    except Exception:
+        _bmi_pro = None
+
+if _bmi_pro is not None and hasattr(_bmi_pro, "router"):
+    app.include_router(_bmi_pro.router, dependencies=[Depends(get_api_key)])
+else:
+    logger.warning("BMI Pro router not available")
+
 # Include the premium week plan router
 try:
     from app.routers.premium_week import router as premium_week_router
@@ -890,7 +964,11 @@ try:
     # Remove existing route(s) for this path and re-register our handler
     to_remove = []
     for r in list(app.router.routes):
-        if isinstance(r, APIRoute) and r.path.startswith("/api/v1/premium/plan/week") and "POST" in r.methods:
+        if (
+            isinstance(r, APIRoute)
+            and r.path.startswith("/api/v1/premium/plan/week")
+            and "POST" in r.methods
+        ):
             to_remove.append(r)
     for r in to_remove:
         app.router.routes.remove(r)
@@ -912,17 +990,40 @@ class BMIRequestV1(BaseModel):
 
 class BMRRequest(BaseModel):
     """Request model for Premium BMR/TDEE calculation"""
-    weight_kg: StrictFloat = Field(..., gt=0, description="Weight in kilograms")
-    height_cm: StrictFloat = Field(..., gt=0, description="Height in centimeters")
-    age: int = Field(..., ge=0, le=120, description="Age in years")
-    sex: Literal["male", "female"] = Field(..., description="Biological sex")
+    weight_kg: StrictFloat = Field(
+        ...,
+        gt=0,
+        description="Weight in kilograms"
+    )
+    height_cm: StrictFloat = Field(
+        ...,
+        gt=0,
+        description="Height in centimeters"
+    )
+    age: int = Field(
+        ...,
+        ge=0,
+        le=120,
+        description="Age in years"
+    )
+    sex: Literal["male", "female"] = Field(
+        ...,
+        description="Biological sex"
+    )
+
     activity: Literal[
         "sedentary", "light", "moderate", "active", "very_active"
     ] = Field(
         ..., description="Physical activity level"
     )
     bodyfat: Optional[float] = Field(
-        None, ge=0, le=50, description="Body fat percentage (optional, for Katch-McArdle formula)"
+        None,
+        ge=0,
+        le=50,
+        description=(
+            "Body fat percentage (optional, for "
+            "Katch-McArdle formula)"
+        )
     )
     lang: Language = Field("en", description="Response language")
 
@@ -1000,7 +1101,8 @@ async def api_premium_bmr(data: BMRRequest):
     - Harris-Benedict (traditional formula)
     - Katch-McArdle (optional, requires body fat percentage)
 
-    Also calculates TDEE (Total Daily Energy Expenditure) based on activity level.
+    Also calculates TDEE (Total Daily Energy Expenditure) based on
+    activity level.
     """
     import sys as _sys
     _pkg = _sys.modules.get('app')
@@ -1052,6 +1154,33 @@ async def api_premium_bmr(data: BMRRequest):
                 "recommended_intake": {
                     "description": "Рекомендуемое потребление калорий на основе TDEE",
                     "maintenance": tdee_results.get("mifflin", 0),
+                    "weight_loss": round(tdee_results.get("mifflin", 0) * 0.8),
+                    "weight_gain": round(tdee_results.get("mifflin", 0) * 1.1),
+                },
+                "formulas_used": list(bmr_results.keys()),
+                "notes": {
+                    "mifflin": "Наиболее точная формула для общей популяции",
+                    "harris": "Традиционная формула, менее точная",
+                    "katch": (
+                        "Для спортсменов с известным % жира"
+                        if "katch" in bmr_results
+                        else None
+                    ),
+                },
+            }
+        else:
+            response = {
+                "bmr": bmr_results,
+                "tdee": tdee_results,
+                "activity_level": data.activity,
+                "activity_description": (
+                    activity_descriptions.get(data.activity, "")
+                ),
+                "recommended_intake": {
+                    "description": (
+                        "Рекомендуемое потребление калорий на основе TDEE"
+                    ),
+                    "maintenance": tdee_results.get("mifflin", 0),
                     "weight_loss": round(
                         tdee_results.get("mifflin", 0) * 0.8
                     ),  # 20% deficit
@@ -1065,33 +1194,6 @@ async def api_premium_bmr(data: BMRRequest):
                     "harris": "Традиционная формула, менее точная",
                     "katch": (
                         "Для спортсменов с известным % жира"
-                        if "katch" in bmr_results
-                        else None
-                    )
-                }
-            }
-        else:
-            response = {
-                "bmr": bmr_results,
-                "tdee": tdee_results,
-                "activity_level": data.activity,
-                "activity_description": activity_descriptions.get(data.activity, ""),
-                "recommended_intake": {
-                    "description": "Recommended calorie intake based on TDEE",
-                    "maintenance": tdee_results.get("mifflin", 0),
-                    "weight_loss": round(
-                        tdee_results.get("mifflin", 0) * 0.8
-                    ),  # 20% deficit
-                    "weight_gain": round(
-                        tdee_results.get("mifflin", 0) * 1.1
-                    ),  # 10% surplus
-                },
-                "formulas_used": list(bmr_results.keys()),
-                "notes": {
-                    "mifflin": "Most accurate formula for general population",
-                    "harris": "Traditional formula, less accurate",
-                    "katch": (
-                        "For athletes with known body fat %"
                         if "katch" in bmr_results
                         else None
                     )
@@ -1137,7 +1239,8 @@ except ImportError:
     except Exception:
         analyze_nutrient_gaps = None  # type: ignore
     make_daily_menu = None
-    # Use sentinel rather than None so tests can differentiate explicit None patches
+    # Use sentinel rather than None so tests can differentiate
+    # explicit None patches
     make_weekly_menu = _MAKE_WEEKLY_MENU_UNAVAILABLE
 
 # Ensure analyze_nutrient_gaps is available at module level for tests
@@ -1184,17 +1287,22 @@ class VisualShape(BaseModel):
     EN: Primitive for frontend (plate sector/bowl/dot).
     """
     kind: Literal["plate_sector", "bowl", "marker"]
-    # fraction: доля сектора 0..1 для plate_sector, или вместимость чашки в 'cups'
+    # fraction: доля сектора 0..1 для plate_sector, или вместимость
+    # чашки в 'cups'
     fraction: float
     label: str
     tooltip: str
 
 class PlateResponse(BaseModel):
     kcal: int
-    macros: Dict[str, int]  # {"protein_g": int, "fat_g": int, "carbs_g": int, "fiber_g": int}
-    portions: Dict[str, Any]  # {"protein_palm": float, "carb_cups": float, "veg_cups": float, "fat_thumbs": float}
+    # {"protein_g": int, "fat_g": int, "carbs_g": int, "fiber_g": int}
+    macros: Dict[str, int]
+    # {"protein_palm": float, "carb_cups": float, "veg_cups": float,
+    # "fat_thumbs": float}
+    portions: Dict[str, Any]
     layout: List[VisualShape]  # спецификация визуалки
     meals: List[Dict[str, Any]]  # список блюд с калориями/макро
+
 
 
 # WHO-Based Nutrition Models
@@ -1479,50 +1587,20 @@ async def api_nutrient_gaps(req: NutrientGapsRequest) -> NutrientGapsResponse:
     RU: Анализирует дефициты нутриентов и предлагает решения.
     EN: Analyzes nutrient gaps and suggests solutions.
 
-    Compares daily consumed nutrients to recommended values based on WHO targets,
-    calculates the nutrient gaps, and suggests food-based solutions to meet
-    nutritional requirements.
-
-    Accepts consumed nutrients and user profile for target calculation.
+    Builds WHO targets from the provided user profile and compares them
+    against consumed nutrients to compute gaps.
     """
     try:
         import sys as _sys
         _pkg = _sys.modules.get('app')
         _module = _sys.modules.get(__name__)
-        _analyze_gaps = (
-            getattr(_pkg, "analyze_nutrient_gaps", None)
-            if _pkg and hasattr(_pkg, "analyze_nutrient_gaps")
-            else getattr(_module, "analyze_nutrient_gaps", None)
-        )
+        _analyze_gaps = getattr(_pkg, "analyze_nutrient_gaps", None) if _pkg and hasattr(_pkg, "analyze_nutrient_gaps") else getattr(_module, "analyze_nutrient_gaps", None)
         if _analyze_gaps is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Nutrient gap analysis feature not available"
-            )
-        # Also require nutrition targets builder availability for deterministic
-        # behavior in tests
-        _build_targets = (
-            getattr(_pkg, "build_nutrition_targets", None)
-            if _pkg and hasattr(_pkg, "build_nutrition_targets")
-            else getattr(_module, "build_nutrition_targets", None)
-        )
-        if _build_targets is None:
-            raise HTTPException(
-                status_code=503,
-                detail="WHO nutrition targets feature not available"
-            )
+            raise HTTPException(status_code=503, detail="Nutrient gap analysis feature not available")
 
-        # Also require nutrition targets builder availability for deterministic behavior in tests
-        _build_targets = (
-            getattr(_pkg, "build_nutrition_targets", None)
-            if _pkg and hasattr(_pkg, "build_nutrition_targets")
-            else getattr(_module, "build_nutrition_targets", None)
-        )
+        _build_targets = getattr(_pkg, "build_nutrition_targets", None) if _pkg and hasattr(_pkg, "build_nutrition_targets") else getattr(_module, "build_nutrition_targets", None)
         if _build_targets is None:
-            raise HTTPException(
-                status_code=503,
-                detail="WHO nutrition targets feature not available"
-            )
+            raise HTTPException(status_code=503, detail="WHO nutrition targets feature not available")
 
         # Convert request to UserProfile
         from core.targets import UserProfile
@@ -1540,16 +1618,16 @@ async def api_nutrient_gaps(req: NutrientGapsRequest) -> NutrientGapsResponse:
             life_stage=req.user_profile.life_stage
         )
 
-        # Build targets to validate profile (may raise ValueError)
+        # Build targets (may raise ValueError)
         try:
-            _ = _build_targets(profile)
+            targets = _build_targets(profile)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=f"Invalid input: {str(e)}") from e
 
-        # Analyze gaps (support both tuple and dict return styles)
+        # Analyze gaps
         _res = _analyze_gaps(
-            consumed_nutrients=req.consumed_nutrients,
-            user_profile=profile
+            targets=targets,
+            consumed=req.consumed_nutrients
         )
         if isinstance(_res, (list, tuple)) and len(_res) == 3:
             gaps, recs, score = _res  # type: ignore[misc]
@@ -1558,25 +1636,14 @@ async def api_nutrient_gaps(req: NutrientGapsRequest) -> NutrientGapsResponse:
             recs = []
             score = 0.0
 
-        return NutrientGapsResponse(
-            gaps=gaps,
-            food_recommendations=recs,
-            adherence_score=score
-        )
+        return NutrientGapsResponse(gaps=gaps, food_recommendations=recs, adherence_score=score)
 
     except HTTPException:
-        # Re-raise HTTP exceptions as-is
         raise
     except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid input: {str(e)}"
-        ) from e
+        raise HTTPException(status_code=400, detail=f"Invalid input: {str(e)}") from e
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Nutrient gap analysis failed: {str(e)}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Nutrient gap analysis failed: {str(e)}") from e
 
 
 # Backward-compatible alias for nutrient gaps endpoint
@@ -1631,7 +1698,7 @@ async def api_weekly_menu(req: WeeklyPlanFlexibleRequest) -> WeeklyMenuResponse:
         _make_weekly = (
             getattr(_pkg, "make_weekly_menu", None)
             if _pkg and hasattr(_pkg, "make_weekly_menu")
-            else getattr(_mod, "make_weekly_menu", None)
+            else getattr(_module, "make_weekly_menu", None)
         )
         if _make_weekly is None:
             raise HTTPException(
@@ -1750,7 +1817,6 @@ async def api_export_day_csv(req: WeeklyPlanFlexibleRequest) -> Response:
 
         # Prefer patched symbols exposed on the package (tests patch app.to_csv_day)
         _pkg = _sys.modules.get('app')
-        _mod = _sys.modules.get(__name__)
         _to_csv_day = (
             getattr(_pkg, "to_csv_day", None)
             if _pkg and hasattr(_pkg, "to_csv_day")
@@ -1809,13 +1875,13 @@ async def api_export_week_csv(req: WeeklyPlanFlexibleRequest) -> Response:
     try:
         # Use unified patchable resolver
         from app.utils.patchable import resolve_patchable
-        
+
         def _fallback_make_weekly_menu(*_a, **_k):
             raise RuntimeError("make_weekly_menu() not wired")
-        
+
         def _fallback_to_csv_week(*_a, **_k):
             raise RuntimeError("to_csv_week() not wired")
-            
+
         make_weekly_menu = resolve_patchable("make_weekly_menu", _fallback_make_weekly_menu)
         to_csv_week = resolve_patchable("to_csv_week", _fallback_to_csv_week)
 
@@ -1860,84 +1926,7 @@ async def api_export_week_csv(req: WeeklyPlanFlexibleRequest) -> Response:
         ) from e
 
 
-@app.post(
-    "/api/v1/premium/export/day/csv",
-    dependencies=[Depends(get_api_key)]
-)
-async def api_export_day_csv(req: WeeklyPlanFlexibleRequest) -> Response:
-    """
-    RU: Экспортирует меню на один день в формате CSV.
-    EN: Exports day menu to CSV.
 
-    Accepts dietary goals (calorie intake, macronutrients) and user profile.
-    Returns a CSV file with detailed meal plan, nutrient coverage, and shopping list.
-
-    Supports flexible input options: either 'targets' (full plan specification)
-    or lightweight user profile (calculation will generate plan).
-
-    Nutrient-based solutions:
-    - Meal suggestions tailored to dietary goals
-    - Daily coverage report for essential nutrients
-    - Weekly shopping list and estimated costs
-
-    Optional parameters allow customization of dietary flags (e.g., VEG, GF).
-
-    """
-    try:
-        # Use unified patchable resolver
-        from app.utils.patchable import resolve_patchable
-        
-        def _fallback_make_weekly_menu(*_a, **_k):
-            raise RuntimeError("make_weekly_menu() not wired")
-        
-        def _fallback_to_csv_day(*_a, **_k):
-            raise RuntimeError("to_csv_day() not wired")
-            
-        make_weekly_menu = resolve_patchable("make_weekly_menu", _fallback_make_weekly_menu)
-        to_csv_day = resolve_patchable("to_csv_day", _fallback_to_csv_day)
-
-        # Convert request to UserProfile
-        from core.targets import UserProfile
-        profile = UserProfile(
-            sex=req.sex,
-            age=req.age,
-            height_cm=req.height_cm,
-            weight_kg=req.weight_kg,
-            activity=req.activity,
-            goal=req.goal,
-            deficit_pct=req.deficit_pct,
-            surplus_pct=req.surplus_pct,
-            bodyfat=req.bodyfat,
-            diet_flags=set(req.diet_flags or []),
-            life_stage=req.life_stage
-        )
-
-        # Generate weekly plan
-        plan, summary, shopping, score, total_cost = make_weekly_menu(
-            targets=req.targets,
-            user_profile=profile
-        )
-
-        # Assume the first day's menu for single day export
-        mock_plan = plan[0]
-
-        csv_data = to_csv_day(mock_plan)
-
-        return Response(content=csv_data, media_type="text/csv")
-
-    except HTTPException:
-        # Re-raise HTTP exceptions as-is
-        raise
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid input: {str(e)}"
-        ) from e
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Weekly meal plan generation failed: {str(e)}"
-        ) from e
 
 
 @app.post(
@@ -1966,13 +1955,13 @@ async def api_export_day_pdf(req: WeeklyPlanFlexibleRequest) -> Response:
     try:
         # Use unified patchable resolver
         from app.utils.patchable import resolve_patchable
-        
+
         def _fallback_make_weekly_menu(*_a, **_k):
             raise RuntimeError("make_weekly_menu() not wired")
-        
+
         def _fallback_to_pdf_day(*_a, **_k):
             raise RuntimeError("to_pdf_day() not wired")
-            
+
         make_weekly_menu = resolve_patchable("make_weekly_menu", _fallback_make_weekly_menu)
         to_pdf_day = resolve_patchable("to_pdf_day", _fallback_to_pdf_day)
 
@@ -2046,15 +2035,15 @@ async def api_export_week_pdf(req: WeeklyPlanFlexibleRequest) -> Response:
     try:
         # Use unified patchable resolver
         from app.utils.patchable import resolve_patchable
-        
+
         def _fallback_make_weekly_menu(*_a, **_k):
             raise RuntimeError("make_weekly_menu() not wired")
-        
+
         def _fallback_to_pdf_week(*_a, **_k):
             raise RuntimeError("to_pdf_week() not wired")
-            
+
         make_weekly_menu = resolve_patchable("make_weekly_menu", _fallback_make_weekly_menu)
-        to_pdf_week = resolve_patchable("to_pdf_week", _fallback_to_pdf_week)
+        _to_pdf_week_fn = resolve_patchable("to_pdf_week", _fallback_to_pdf_week)
 
         # Convert request to UserProfile
         from core.targets import UserProfile
@@ -2086,70 +2075,7 @@ async def api_export_week_pdf(req: WeeklyPlanFlexibleRequest) -> Response:
             "adherence_score": score,
         }
 
-        pdf_data = to_pdf_week(weekly_plan)
-
-        from fastapi.responses import Response
-        return Response(content=pdf_data, media_type="application/pdf")
-
-    except HTTPException:
-        # Re-raise HTTP exceptions as-is
-        raise
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid input: {str(e)}"
-        ) from e
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"WHO targets calculation failed: {str(e)}"
-        ) from e
-
-        # Convert request to UserProfile
-        from core.targets import UserProfile
-        profile = UserProfile(
-            sex=req.sex,
-            age=req.age,
-            height_cm=req.height_cm,
-            weight_kg=req.weight_kg,
-            activity=req.activity,
-            goal=req.goal,
-            deficit_pct=req.deficit_pct,
-            surplus_pct=req.surplus_pct,
-            bodyfat=req.bodyfat,
-            diet_flags=set(req.diet_flags or []),
-            life_stage=req.life_stage
-        )
-
-        # Generate weekly plan (content is produced by the menu engine)
-        plan, summary, shopping, score, total_cost = _make_weekly(
-            targets=req.targets,
-            user_profile=profile
-        )
-
-        # Prefer patched symbols exposed on the package (tests patch app.to_pdf_week)
-        _pkg = _sys.modules.get('app')
-        _mod = _sys.modules.get(__name__)
-        _to_pdf_week = (
-            getattr(_pkg, "to_pdf_week", None)
-            if _pkg and hasattr(_pkg, "to_pdf_week")
-            else to_pdf_week
-        )
-        if _to_pdf_week is None:
-            raise HTTPException(
-                status_code=503,
-                detail="PDF export function not available"
-            )
-
-        # Build a minimal weekly plan structure for export
-        weekly_plan = {
-            "daily_menus": plan,
-            "shopping_list": shopping,
-            "total_cost": total_cost,
-            "adherence_score": score,
-        }
-
-        pdf_data = _to_pdf_week(weekly_plan)
+        pdf_data = _to_pdf_week_fn(weekly_plan)
 
         from fastapi.responses import Response
         return Response(content=pdf_data, media_type="application/pdf")
@@ -2173,16 +2099,16 @@ async def api_export_week_pdf(req: WeeklyPlanFlexibleRequest) -> Response:
 async def weekly_plan_endpoint(request: WeeklyPlanFlexibleRequest, http_request: Request):
     """
     Generate a 7-day meal plan with nutrient coverage analysis and shopping list.
-    
+
     This endpoint generates a comprehensive weekly meal plan that includes:
     - 7 days of meals with detailed nutritional information
     - Weekly nutrient coverage analysis for 8 key micronutrients
     - Shopping list with estimated prices
     - Diet flag compatibility (VEG, GF, PESC, LOW_COST)
     - Multilingual support (ru, en, es)
-    
+
     The plan includes automatic boosters for nutrients with <80% coverage.
-    
+
     Returns:
         WeekPlanResponse: A detailed weekly meal plan with coverage analysis and shopping list.
     """
@@ -2317,101 +2243,6 @@ async def weekly_plan_endpoint(request: WeeklyPlanFlexibleRequest, http_request:
 # Weekly route is now defined once above with unified handler.
 
 
-@app.post(
-    "/api/v1/premium/nutrient-gaps",
-    dependencies=[Depends(get_api_key)],
-    response_model=NutrientGapsResponse
-)
-async def api_nutrient_gaps(req: NutrientGapsRequest) -> NutrientGapsResponse:
-    """
-    RU: Анализирует дефициты нутриентов и предлагает решения.
-    EN: Analyzes nutrient gaps and suggests solutions.
-
-    Compares daily consumed nutrients to recommended values based on WHO targets,
-    calculates the nutrient gaps, and suggests food-based solutions to meet
-    nutritional requirements.
-
-    Accepts consumed nutrients and user profile for target calculation.
-    """
-    try:
-        import sys as _sys
-        _pkg = _sys.modules.get('app')
-        _module = _sys.modules.get(__name__)
-        _analyze_gaps = getattr(_pkg, "analyze_nutrient_gaps", None) if _pkg and hasattr(_pkg, "analyze_nutrient_gaps") else getattr(_module, "analyze_nutrient_gaps", None)
-        if _analyze_gaps is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Nutrient gap analysis feature not available"
-            )
-
-        # Also require nutrition targets builder availability for deterministic
-        # behavior in tests
-        _build_targets = (
-            getattr(_pkg, "build_nutrition_targets", None)
-            if _pkg and hasattr(_pkg, "build_nutrition_targets")
-            else getattr(_module, "build_nutrition_targets", None)
-        )
-        if _build_targets is None:
-            raise HTTPException(
-                status_code=503,
-                detail="WHO nutrition targets feature not available"
-            )
-
-        # Convert request to UserProfile
-        from core.targets import UserProfile
-        profile = UserProfile(
-            sex=req.user_profile.sex,
-            age=req.user_profile.age,
-            height_cm=req.user_profile.height_cm,
-            weight_kg=req.user_profile.weight_kg,
-            activity=req.user_profile.activity,
-            goal=req.user_profile.goal,
-            deficit_pct=req.user_profile.deficit_pct,
-            surplus_pct=req.user_profile.surplus_pct,
-            bodyfat=req.user_profile.bodyfat,
-            diet_flags=set(req.user_profile.diet_flags or []),
-            life_stage=req.user_profile.life_stage
-        )
-
-        # Build targets to validate profile (may raise ValueError)
-        try:
-            targets = _build_targets(profile)
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=f"Invalid input: {str(e)}") from e
-
-        # Analyze gaps (support both tuple and dict return styles)
-        _res = _analyze_gaps(
-            targets=targets,
-            consumed=req.consumed_nutrients
-        )
-        if isinstance(_res, (list, tuple)) and len(_res) == 3:
-            gaps, recs, score = _res  # type: ignore[misc]
-        else:
-            gaps = _res  # type: ignore[assignment]
-            recs = []
-            score = 0.0
-
-        return NutrientGapsResponse(
-            gaps=gaps,
-            food_recommendations=recs,
-            adherence_score=score
-        )
-
-    except HTTPException:
-        # Re-raise HTTP exceptions as-is
-        raise
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid input: {str(e)}"
-        ) from e
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Nutrient gap analysis failed: {str(e)}"
-        ) from e
-
-
 @app.get("/debug_env")
 async def debug_env():
     data = {
@@ -2486,6 +2317,8 @@ async def force_database_update(source: Optional[str] = None):
         _pkg = _sys.modules.get('app')
         _getter = getattr(_pkg, "get_update_scheduler", None) if _pkg and hasattr(_pkg, "get_update_scheduler") else getattr(_sys.modules.get(__name__), "get_update_scheduler")
         logger.debug(f"force_database_update using getter: {_getter!r}")
+
+        # Admin-only endpoint: no feature flag checks
 
         # Check if getter is available before calling
         if _getter is None:
@@ -2621,122 +2454,19 @@ async def rollback_database(source: str, target_version: str):
         ) from e
 
 
-@app.post(
-    "/api/v1/bmi/pro",
-    response_model=BMIProResponse,
-    dependencies=[Depends(get_api_key)]
-)
-async def api_v1_bmi_pro(payload: BMIProRequest):
-    """
-    BMI Pro: Advanced BMI analysis with waist measurements, body composition, and risk staging.
-
-    Provides comprehensive health risk assessment including:
-    - Traditional BMI and category
-    - Waist-to-Height Ratio (WHtR) with risk interpretation
-    - Waist-to-Hip Ratio (WHR) with sex-specific risk thresholds
-    - Fat-Free Mass Index (FFMI) for body composition analysis
-    - Multi-factor obesity staging and personalized recommendations
-    """
-    try:
-        # Calculate traditional BMI
-        height_m = payload.height_cm / 100.0
-        bmi = round(payload.weight_kg / (height_m ** 2), 1)
-        bmi_cat = bmi_category(bmi, payload.lang)
-
-        # Calculate WHtR
-        wht = wht_ratio(payload.waist_cm, payload.height_cm)
-        wht_interpretation = interpret_wht_ratio(wht, payload.lang)
-
-        # Normalize gender for functions that expect Literal["male", "female"]
-        normalized_gender = "male" if payload.gender.lower() in {"male", "муж", "м"} else "female"
-
-        # Calculate WHR if hip measurement provided
-        whr = None
-        whr_interpretation = None
-        if payload.hip_cm:
-            whr = whr_ratio(payload.waist_cm, payload.hip_cm, normalized_gender)
-            whr_interpretation = interpret_whr_ratio(whr, normalized_gender, payload.lang)
-
-        # Calculate FFMI if body fat percentage provided
-        ffm_result = None
-        if payload.bodyfat_pct is not None:
-            ffm_result = ffmi(payload.weight_kg, payload.height_cm, payload.bodyfat_pct)
-
-        # Stage obesity using multiple metrics
-        import sys as _sys
-        _pkg = _sys.modules.get('app')
-        _stage_obesity = getattr(_pkg, 'stage_obesity', None) if _pkg and hasattr(_pkg, 'stage_obesity') else stage_obesity
-
-        # Check if function is available before calling
-        if _stage_obesity is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Obesity staging function not available"
-            )
-
-        obesity_staging = _stage_obesity(
-            bmi, wht, whr or 0, normalized_gender, payload.lang
-        )
-
-        # Build response
-        response = BMIProResponse(
-            bmi=bmi,
-            bmi_category=bmi_cat,
-            wht_ratio=wht,
-            wht_risk_category=wht_interpretation["category"],
-            wht_risk_level=wht_interpretation["risk"],
-            wht_description=wht_interpretation["description"],
-            obesity_stage=obesity_staging["stage"],
-            risk_factors=int(obesity_staging["risk_factors"]),
-            recommendation=obesity_staging["recommendation"],
-            note=t(payload.lang, "bmi_pro_analysis_complete")
-        )
-
-        # Add WHR data if available
-        if whr is not None and whr_interpretation is not None:
-            response.whr_ratio = whr
-            response.whr_risk_level = whr_interpretation["risk"]
-            response.whr_description = whr_interpretation["description"]
-
-        # Add FFMI data if available
-        if ffm_result is not None:
-            response.ffmi = ffm_result["ffmi"]
-            response.ffm_kg = ffm_result["ffm_kg"]
-
-        return response
-
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid input: {str(e)}"
-        ) from e
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"BMI Pro analysis failed: {str(e)}"
-        ) from e
+# legacy duplicate of /api/v1/bmi/pro removed — use app/routers/bmi_pro.py
 
 
-# Export Endpoints
+"""
+Export Endpoints (GET): CSV/PDF for day and week plans.
+This section is used by tests to verify content types and headers.
+"""
 
 @app.get("/api/v1/premium/exports/day/{plan_id}.csv", dependencies=[Depends(get_api_key)])
 async def export_daily_plan_csv(plan_id: str):
-    """
-    RU: Экспортировать дневной план в CSV.
-    EN: Export daily meal plan to CSV.
-
-    Args:
-        plan_id: ID of the daily plan to export
-
-    Returns:
-        CSV file download
-    """
     try:
-        # In a real implementation, this would fetch the plan from a database
-        # For now, we'll return a placeholder response
         from fastapi.responses import Response
 
-        # Mock data - in real implementation, fetch from database
         mock_plan = {
             "meals": [
                 {"name": "Breakfast", "food_item": "Oatmeal", "kcal": 300, "protein_g": 10, "carbs_g": 50, "fat_g": 5},
@@ -2751,7 +2481,6 @@ async def export_daily_plan_csv(plan_id: str):
 
         import sys as _sys
         _pkg = _sys.modules.get('app')
-        _mod = _sys.modules.get(__name__)
         _to_csv_day = getattr(_pkg, "to_csv_day", None) if _pkg and hasattr(_pkg, "to_csv_day") else to_csv_day
         csv_data = _to_csv_day(mock_plan)
 
@@ -2760,55 +2489,20 @@ async def export_daily_plan_csv(plan_id: str):
             media_type="text/csv",
             headers={"Content-Disposition": f"attachment; filename=daily_plan_{plan_id}.csv"}
         )
-
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"CSV export failed: {str(e)}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"CSV export failed: {str(e)}")
 
 
 @app.get("/api/v1/premium/exports/week/{plan_id}.csv", dependencies=[Depends(get_api_key)])
 async def export_weekly_plan_csv(plan_id: str):
-    """
-    RU: Экспортировать недельный план в CSV.
-    EN: Export weekly meal plan to CSV.
-
-    Args:
-        plan_id: ID of the weekly plan to export
-
-    Returns:
-        CSV file download
-    """
     try:
         from fastapi.responses import Response
 
-        # Mock data - in real implementation, fetch from database
         mock_weekly_plan = {
-            "daily_menus": [
-                {
-                    "date": "2023-01-01",
-                    "meals": [
-                        {"name": "Breakfast", "food_item": "Oatmeal", "kcal": 300, "protein_g": 10, "carbs_g": 50, "fat_g": 5, "cost": 1.5},
-                        {"name": "Lunch", "food_item": "Chicken Salad", "kcal": 450, "protein_g": 35, "carbs_g": 20, "fat_g": 25, "cost": 3.2}
-                    ]
-                },
-                {
-                    "date": "2023-01-02",
-                    "meals": [
-                        {"name": "Breakfast", "food_item": "Scrambled Eggs", "kcal": 250, "protein_g": 18, "carbs_g": 1, "fat_g": 20, "cost": 1.2},
-                        {"name": "Lunch", "food_item": "Beef Stir Fry", "kcal": 500, "protein_g": 30, "carbs_g": 40, "fat_g": 20, "cost": 4.5}
-                    ]
-                }
-            ],
-            "shopping_list": {
-                "oats": 500,
-                "chicken_breast": 300,
-                "eggs": 12,
-                "beef": 400
-            },
-            "total_cost": 150.0,
-            "adherence_score": 92.5
+            "daily_menus": [],
+            "shopping_list": {},
+            "total_cost": 0.0,
+            "adherence_score": 0.0
         }
 
         import sys as _sys
@@ -2821,30 +2515,15 @@ async def export_weekly_plan_csv(plan_id: str):
             media_type="text/csv",
             headers={"Content-Disposition": f"attachment; filename=weekly_plan_{plan_id}.csv"}
         )
-
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"CSV export failed: {str(e)}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"CSV export failed: {str(e)}")
 
 
 @app.get("/api/v1/premium/exports/day/{plan_id}.pdf", dependencies=[Depends(get_api_key)])
 async def export_daily_plan_pdf(plan_id: str):
-    """
-    RU: Экспортировать дневной план в PDF.
-    EN: Export daily meal plan to PDF.
-
-    Args:
-        plan_id: ID of the daily plan to export
-
-    Returns:
-        PDF file download
-    """
     try:
         from fastapi.responses import Response
 
-        # Mock data - in real implementation, fetch from database
         mock_plan = {
             "meals": [
                 {"name": "Breakfast", "food_item": "Oatmeal", "kcal": 300, "protein_g": 10, "carbs_g": 50, "fat_g": 5},
@@ -2867,62 +2546,22 @@ async def export_daily_plan_pdf(plan_id: str):
             media_type="application/pdf",
             headers={"Content-Disposition": f"attachment; filename=daily_plan_{plan_id}.pdf"}
         )
-
     except ImportError:
-        raise HTTPException(
-            status_code=503,
-            detail="PDF export not available - ReportLab not installed"
-        )
+        raise HTTPException(status_code=503, detail="PDF export not available - ReportLab not installed")
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"PDF export failed: {str(e)}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"PDF export failed: {str(e)}")
 
 
 @app.get("/api/v1/premium/exports/week/{plan_id}.pdf", dependencies=[Depends(get_api_key)])
 async def export_weekly_plan_pdf(plan_id: str):
-    """
-    RU: Экспортировать недельный план в PDF.
-    EN: Export weekly meal plan to PDF.
-
-    Args:
-        plan_id: ID of the weekly plan to export
-
-    Returns:
-        PDF file download
-    """
     try:
         from fastapi.responses import Response
-
-        # Mock data - in real implementation, fetch from database
         mock_weekly_plan = {
-            "daily_menus": [
-                {
-                    "date": "2023-01-01",
-                    "meals": [
-                        {"name": "Breakfast", "food_item": "Oatmeal", "kcal": 300, "protein_g": 10, "carbs_g": 50, "fat_g": 5, "cost": 1.5},
-                        {"name": "Lunch", "food_item": "Chicken Salad", "kcal": 450, "protein_g": 35, "carbs_g": 20, "fat_g": 25, "cost": 3.2}
-                    ]
-                },
-                {
-                    "date": "2023-01-02",
-                    "meals": [
-                        {"name": "Breakfast", "food_item": "Scrambled Eggs", "kcal": 250, "protein_g": 18, "carbs_g": 1, "fat_g": 20, "cost": 1.2},
-                        {"name": "Lunch", "food_item": "Beef Stir Fry", "kcal": 500, "protein_g": 30, "carbs_g": 40, "fat_g": 20, "cost": 4.5}
-                    ]
-                }
-            ],
-            "shopping_list": {
-                "oats": 500,
-                "chicken_breast": 300,
-                "eggs": 12,
-                "beef": 400
-            },
-            "total_cost": 150.0,
-            "adherence_score": 92.5
+            "daily_menus": [],
+            "shopping_list": {},
+            "total_cost": 0.0,
+            "adherence_score": 0.0
         }
-
         import sys as _sys
         _pkg = _sys.modules.get('app')
         _to_pdf_week = getattr(_pkg, "to_pdf_week", None) if _pkg and hasattr(_pkg, "to_pdf_week") else to_pdf_week
@@ -2933,14 +2572,7 @@ async def export_weekly_plan_pdf(plan_id: str):
             media_type="application/pdf",
             headers={"Content-Disposition": f"attachment; filename=weekly_plan_{plan_id}.pdf"}
         )
-
     except ImportError:
-        raise HTTPException(
-            status_code=503,
-            detail="PDF export not available - ReportLab not installed"
-        )
+        raise HTTPException(status_code=503, detail="PDF export not available - ReportLab not installed")
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"PDF export failed: {str(e)}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"PDF export failed: {str(e)}")

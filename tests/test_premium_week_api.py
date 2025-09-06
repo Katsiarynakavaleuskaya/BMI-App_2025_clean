@@ -26,7 +26,8 @@ class TestPremiumWeekAPI:
         if "API_KEY" in os.environ:
             del os.environ["API_KEY"]
 
-    def test_premium_week_endpoint_multilingual(self):
+    @pytest.mark.parametrize("lang", ["en", "ru", "es"])
+    def test_premium_week_endpoint_multilingual(self, lang):
         """Test the premium week endpoint with different languages."""
         # Test data with user profile
         test_data = {
@@ -37,54 +38,50 @@ class TestPremiumWeekAPI:
             "activity": "moderate",
             "goal": "maintain",
             "diet_flags": [],
-            "lang": "en"  # Will change this for each test
+            "lang": lang
         }
 
-        # Test with different languages
-        for lang in ["en", "ru", "es"]:
-            test_data["lang"] = lang
+        # Make request to the API
+        response = client.post(
+            "/api/v1/premium/plan/week",
+            json=test_data,
+            headers={"X-API-Key": "test_key"}
+        )
 
-            # Make request to the API
-            response = client.post(
-                "/api/v1/premium/plan/week",
-                json=test_data,
-                headers={"X-API-Key": "test_key"}
-            )
+        # Check that the response is successful
+        assert response.status_code == 200, f"Failed for language {lang}"
 
-            # Check that the response is successful
-            assert response.status_code == 200, f"Failed for language {lang}"
+        # Parse the response
+        result = response.json()
 
-            # Parse the response
-            result = response.json()
+        # Check that we have the expected structure
+        assert "days" in result
+        assert "weekly_coverage" in result
+        assert "shopping_list" in result
 
-            # Check that we have the expected structure
-            assert "days" in result
-            assert "weekly_coverage" in result
-            assert "shopping_list" in result
+        # Check that we have 7 days
+        assert len(result["days"]) == 7
 
-            # Check that we have 7 days
-            assert len(result["days"]) == 7
+        # Check that each day has the expected structure
+        for day in result["days"]:
+            assert "meals" in day
+            assert "kcal" in day
+            assert "macros" in day
+            assert "micros" in day
+            assert "coverage" in day
+            assert "tips" in day
 
-            # Check that each day has the expected structure
-            for day in result["days"]:
-                assert "meals" in day
-                assert "kcal" in day
-                assert "macros" in day
-                assert "micros" in day
-                assert "coverage" in day
-                assert "tips" in day
+            # Check that meals have translated titles
+            for meal in day["meals"]:
+                assert "title" in meal
+                assert "title_translated" in meal
 
-                # Check that meals have translated titles
-                for meal in day["meals"]:
-                    assert "title" in meal
-                    assert "title_translated" in meal
-
-            # Check that shopping list has translated names
-            for item in result["shopping_list"]:
-                assert "name" in item
-                assert "name_translated" in item
-                assert "grams" in item
-                assert "price_est" in item
+        # Check that shopping list has translated names
+        for item in result["shopping_list"]:
+            assert "name" in item
+            assert "name_translated" in item
+            assert "grams" in item
+            assert "price_est" in item
 
     def test_premium_week_endpoint_with_targets(self):
         """Test the premium week endpoint with pre-calculated targets."""

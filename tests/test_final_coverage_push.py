@@ -122,6 +122,8 @@ class TestFailingEndpointTests:
 
     def test_premium_bmr_missing_api_key(self):
         """Test Premium BMR API without API key."""
+        # Set APP_ENV to prod to enforce API key requirement
+        os.environ["APP_ENV"] = "prod"
         data = {
             "weight_kg": 70.0,
             "height_cm": 175.0,
@@ -135,6 +137,9 @@ class TestFailingEndpointTests:
         response = self.client.post("/api/v1/premium/bmr", json=data)
         # Should return 403 for missing API key
         assert response.status_code == 403
+        # Clean up
+        if "APP_ENV" in os.environ:
+            del os.environ["APP_ENV"]
 
 
 class TestAppPyCoverageImprovement:

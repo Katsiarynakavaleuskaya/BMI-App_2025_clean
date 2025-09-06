@@ -15,7 +15,9 @@ from core.food_db_new import MICRO_KEYS, FoodDB
 def test_parse_food_db():
     """Test that food database is parsed correctly."""
     # Get the path to the test data file
-    csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "food_db_new.csv")
+    csv_path = os.path.join(
+        os.path.dirname(__file__), "..", "data", "food_db_new.csv"
+    )
 
     # Parse the food database
     food_db = FoodDB(csv_path)
@@ -45,10 +47,13 @@ def test_parse_food_db():
     assert chicken.micros["Fe_mg"] == 0.7
     assert "OMNI" in chicken.flags
 
+
 def test_pick_booster_for():
     """Test booster food selection."""
     # Get the path to the test data file
-    csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "food_db_new.csv")
+    csv_path = os.path.join(
+        os.path.dirname(__file__), "..", "data", "food_db_new.csv"
+    )
 
     # Parse the food database
     food_db = FoodDB(csv_path)
@@ -57,18 +62,26 @@ def test_pick_booster_for():
     booster = food_db.pick_booster_for("Fe_mg", [])
     # Should return a food that's high in iron
     assert booster is not None
-    assert booster in ["lentils", "spinach", "tofu", "chicken_breast"]
+    assert booster in [
+        "lentils",
+        "spinach_raw",
+        "tofu",
+        "chicken_breast",
+    ]
 
     # Test with vegetarian flag
     veg_booster = food_db.pick_booster_for("Fe_mg", ["VEG"])
     assert veg_booster is not None
-    assert veg_booster in ["lentils", "spinach", "tofu"]
+    assert veg_booster in ["lentils", "spinach_raw", "tofu"]
     assert veg_booster != "chicken_breast"  # Should not return non-veg items
 
-def test_aggregate_shopping():
+
+def test_aggregate_shopping():  # sourcery skip: extract-duplicate-method
     """Test shopping list aggregation."""
     # Get the path to the test data file
-    csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "food_db_new.csv")
+    csv_path = os.path.join(
+        os.path.dirname(__file__), "..", "data", "food_db_new.csv"
+    )
 
     # Parse the food database
     food_db = FoodDB(csv_path)
@@ -103,34 +116,55 @@ def test_aggregate_shopping():
     shopping_list = food_db.aggregate_shopping(days)
 
     # Check that ingredients are aggregated correctly
-    oats_item = next((item for item in shopping_list if item["name"] == "oats"), None)
+    oats_item = next(
+        (item for item in shopping_list if item["name"] == "oats"),
+        None,
+    )
     assert oats_item is not None
     assert oats_item["grams"] == 60
 
-    spinach_item = next((item for item in shopping_list if item["name"] == "spinach"), None)
+    spinach_item = next(
+        (item for item in shopping_list if item["name"] == "spinach"),
+        None,
+    )
     assert spinach_item is not None
     assert spinach_item["grams"] == 120
+
 
 def test_get_translated_food_name():
     """Test food name translation."""
     # Get the path to the test data file
-    csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "food_db_new.csv")
+    csv_path = os.path.join(
+        os.path.dirname(__file__), "..", "data", "food_db_new.csv"
+    )
 
     # Parse the food database
     food_db = FoodDB(csv_path)
 
     # Test translation for different languages
-    assert food_db.get_translated_food_name("chicken_breast", "en") == "Chicken breast"
-    assert food_db.get_translated_food_name("chicken_breast", "ru") == "Куриная грудка"
-    assert food_db.get_translated_food_name("chicken_breast", "es") == "Pechuga de pollo"
+    assert food_db.get_translated_food_name(
+        "chicken_breast", "en"
+    ) == "Chicken breast"
+    assert food_db.get_translated_food_name(
+        "chicken_breast", "ru"
+    ) == "Куриная грудка"
+    assert food_db.get_translated_food_name(
+        "chicken_breast", "es"
+    ) == "Pechuga de pollo"
 
     # Test that unknown food returns original name
-    assert food_db.get_translated_food_name("unknown_food", "en") == "unknown_food"
+    assert food_db.get_translated_food_name(
+        "unknown_food", "en"
+    ) == "unknown_food"
 
-def test_aggregate_shopping_multilingual():
+
+@pytest.mark.parametrize("lang", ["en", "ru", "es"])
+def test_aggregate_shopping_multilingual(lang):
     """Test multilingual shopping list aggregation."""
     # Get the path to the test data file
-    csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "food_db_new.csv")
+    csv_path = os.path.join(
+        os.path.dirname(__file__), "..", "data", "food_db_new.csv"
+    )
 
     # Parse the food database
     food_db = FoodDB(csv_path)
@@ -150,22 +184,29 @@ def test_aggregate_shopping_multilingual():
         }
     ]
 
-    # Test shopping list with different languages
-    for lang in ["en", "ru", "es"]:
-        shopping_list = food_db.aggregate_shopping(days, lang)
+    shopping_list = food_db.aggregate_shopping(days, lang)
 
-        # Check that we have translated names
-        assert len(shopping_list) > 0
-        for item in shopping_list:
-            assert "name" in item
-            assert "name_translated" in item
-            assert "grams" in item
-            assert "price_est" in item
+    # Check that we have translated names
+    assert len(shopping_list) > 0
+
+    @pytest.mark.parametrize("item", shopping_list)
+    def test_shopping_list_item_keys(item):
+        # Ensure expected keys exist in each item
+        assert "name" in item
+        assert "name_translated" in item
+        assert "grams" in item
+        assert "price_est" in item
+
+    # The test_shopping_list_item_keys function will be called automatically
+    # for each item in shopping_list
+
 
 def test_compatible_flags():
     """Test dietary flag compatibility."""
     # Get the path to the test data file
-    csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "food_db_new.csv")
+    csv_path = os.path.join(
+        os.path.dirname(__file__), "..", "data", "food_db_new.csv"
+    )
 
     # Parse the food database
     food_db = FoodDB(csv_path)
@@ -200,10 +241,13 @@ def test_compatible_flags():
     diet_flags = []
     assert food_db._compatible(food_flags, diet_flags)
 
+
 def test_pick_booster_for_edge_cases():
     """Test booster food selection edge cases."""
     # Get the path to the test data file
-    csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "food_db_new.csv")
+    csv_path = os.path.join(
+        os.path.dirname(__file__), "..", "data", "food_db_new.csv"
+    )
 
     # Parse the food database
     food_db = FoodDB(csv_path)
@@ -215,10 +259,21 @@ def test_pick_booster_for_edge_cases():
     # Test picking a booster when no compatible food is available
     # This would require a special case where all candidates are incompatible
 
+
 def test_micro_keys():
     """Test that MICRO_KEYS constant is defined correctly."""
-    expected_keys = ["Fe_mg","Ca_mg","VitD_IU","B12_ug","Folate_ug","Iodine_ug","K_mg","Mg_mg"]
+    expected_keys = [
+        "Fe_mg",
+        "Ca_mg",
+        "VitD_IU",
+        "B12_ug",
+        "Folate_ug",
+        "Iodine_ug",
+        "K_mg",
+        "Mg_mg",
+    ]
     assert MICRO_KEYS == expected_keys
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

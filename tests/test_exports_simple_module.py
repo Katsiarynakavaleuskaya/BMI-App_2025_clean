@@ -6,7 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from core.exports_simple import to_csv_day, to_csv_week, to_pdf_day, to_pdf_week
+from core.exports_simple import (
+    to_csv_day,
+    to_csv_week,
+    to_pdf_day,
+    to_pdf_week,
+)
 
 
 def test_csv_day_simple():

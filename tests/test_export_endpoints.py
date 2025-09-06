@@ -20,6 +20,7 @@ class TestExportEndpoints:
     def setup_method(self):
         """Set up test client."""
         os.environ["API_KEY"] = "test_key"
+        os.environ["APP_ENV"] = "prod"
         self.client = TestClient(app)
 
     def teardown_method(self):

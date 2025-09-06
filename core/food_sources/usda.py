@@ -27,7 +27,7 @@ class USDAAdapter(BaseAdapter):
         """
         RU: Инициализировать адаптер USDA.
         EN: Initialize USDA adapter.
-        
+
         Args:
             csv_path: Path to USDA CSV file
         """

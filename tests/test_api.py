@@ -310,7 +310,9 @@ def test_v1_bmi_invalid_api_key():
     assert "Invalid API Key" in data["detail"]
 
 
-def test_v1_bmi_no_api_key():
+def test_v1_bmi_no_api_key(monkeypatch):
+    # Set APP_ENV to prod to enforce API key requirement
+    monkeypatch.setenv("APP_ENV", "prod")
     r = client.post(
         "/api/v1/bmi",
         json={"weight_kg": 70, "height_cm": 170, "group": "general"}
@@ -320,7 +322,9 @@ def test_v1_bmi_no_api_key():
     assert "Invalid API Key" in data["detail"]
 
 
-def test_v1_insight_invalid_api_key():
+def test_v1_insight_invalid_api_key(monkeypatch):
+    # Set APP_ENV to prod to enforce API key requirement
+    monkeypatch.setenv("APP_ENV", "prod")
     r = client.post(
         "/api/v1/insight",
         json={"text": "test"},

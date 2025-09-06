@@ -290,7 +290,10 @@ class TestSchedulerMissingCoverage:
     async def test_start_background_updates_already_running(self):
         """Test start_background_updates when already running."""
         # First call to get the global instance
-        from core.food_apis.scheduler import _scheduler_instance, get_update_scheduler
+        from core.food_apis.scheduler import (
+            _scheduler_instance,
+            get_update_scheduler,
+        )
         scheduler = await get_update_scheduler()
         scheduler.is_running = True  # Mark as running
 
@@ -303,7 +306,10 @@ class TestSchedulerMissingCoverage:
     async def test_stop_background_updates_not_running(self):
         """Test stop_background_updates when not running."""
         # First call to get the global instance
-        from core.food_apis.scheduler import _scheduler_instance, get_update_scheduler
+        from core.food_apis.scheduler import (
+            _scheduler_instance,
+            get_update_scheduler,
+        )
         scheduler = await get_update_scheduler()
         scheduler.is_running = False  # Mark as not running
 

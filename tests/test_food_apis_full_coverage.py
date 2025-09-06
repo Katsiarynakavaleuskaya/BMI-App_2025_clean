@@ -267,7 +267,10 @@ def test_update_manager_update_paths(tmp_path: Path):
 
 
 def test_update_manager_rollback_and_status(tmp_path: Path):
-    from core.food_apis.update_manager import DatabaseUpdateManager, DatabaseVersion
+    from core.food_apis.update_manager import (
+        DatabaseUpdateManager,
+        DatabaseVersion,
+    )
 
     cache_dir = tmp_path / "upd2"
     m = DatabaseUpdateManager(cache_dir=str(cache_dir), update_interval_hours=0)

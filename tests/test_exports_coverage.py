@@ -80,7 +80,11 @@ def test_exports_import_error_cases():
     """Test export functions when ReportLab is not available."""
     # Mock REPORTLAB_AVAILABLE to False to simulate missing ReportLab
     with patch('core.exports.REPORTLAB_AVAILABLE', False):
-        from core.exports import _import_reportlab_modules, to_pdf_day, to_pdf_week
+        from core.exports import (
+            _import_reportlab_modules,
+            to_pdf_day,
+            to_pdf_week,
+        )
 
         # Test that PDF functions raise ImportError when ReportLab is not available
         meal_plan = {"meals": []}

@@ -12,7 +12,10 @@ Tests cover:
 
 import pytest
 
-from core.recommendations import build_nutrition_targets, validate_targets_safety
+from core.recommendations import (
+    build_nutrition_targets,
+    validate_targets_safety,
+)
 from core.rules_who import (
     get_activity_guidelines,
     get_micronutrient_rda,
@@ -95,8 +98,8 @@ class TestWHOTargets:
         assert targets.kcal_daily >= 1200  # Safety minimum
 
         # Should have higher protein for muscle preservation
-        protein_ratio = targets.macros.protein_g / targets.kcal_daily * 4 * 100
-        assert protein_ratio >= 20  # At least 20% protein for weight loss
+        # At least 20% protein for weight loss
+        assert targets.macros.protein_g / targets.kcal_daily * 4 * 100 >= 20
 
     def test_weight_gain_goals(self):
         """Test targets for weight gain goals."""

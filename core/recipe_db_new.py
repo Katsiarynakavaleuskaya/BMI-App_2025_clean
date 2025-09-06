@@ -11,7 +11,6 @@ and provide recipe scaling functionality.
 from __future__ import annotations
 
 import csv
-import random
 from dataclasses import dataclass
 from typing import Dict, List
 
@@ -56,13 +55,20 @@ class RecipeDB:
         if not candidates:
             # fallback: любой с совместимыми флагами
             candidates = [r for r in self.recipes if self._compatible(r.tags, diet_flags)]
-        return random.choice(candidates) if candidates else None
+        if not candidates:
+            return None
+        # Deterministic selection to keep results stable across languages/runs
+        candidates.sort(key=lambda x: x.name)
+        return candidates[meal_index % len(candidates)]
 
     def _compatible(self, recipe_flags: List[str], diet_flags: List[str]) -> bool:
-        if "VEG" in diet_flags and "OMNI" in recipe_flags:
+        # VEG запрещает OMNI и PESC
+        if "VEG" in diet_flags and ("OMNI" in recipe_flags or "PESC" in recipe_flags):
             return False
+        # PESC запрещает OMNI
         if "PESC" in diet_flags and "OMNI" in recipe_flags:
             return False
+        # GF требует GF-совместимое
         if "GF" in diet_flags and "GF" not in recipe_flags:
             return False
         return True
@@ -95,8 +101,8 @@ class RecipeDB:
             alpha = kcal_goal / base["kcal"]
         # первичное масштабирование
         grams = {k: max(10.0, v*alpha) for k, v in grams.items()}
-        # лёгкая рандомизация (±5%) для вариативности
-        grams = {k: v * (0.95 + 0.10 * random.random()) for k, v in grams.items()}
+        # Убираем рандомизацию для детерминированности между языками/запросами
+        # grams = {k: v * (0.95 + 0.10 * random.random()) for k, v in grams.items()}
         nut = self._nutrition_for(grams)
 
         # если сильно промахнулись по цели >5%, подправим ещё раз

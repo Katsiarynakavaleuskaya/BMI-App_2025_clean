@@ -90,7 +90,10 @@ def test_weekly_coverage_calculation():
     assert isinstance(coverage, dict)
 
     # Check for key micronutrients
-    expected_micros = ["iron_mg", "calcium_mg", "folate_ug", "vitamin_d_iu", "b12_ug"]
+    expected_micros = [
+        "iron_mg", "calcium_mg", "folate_ug",
+        "vitamin_d_iu", "b12_ug"
+    ]
     for micro in expected_micros:
         assert micro in coverage
 

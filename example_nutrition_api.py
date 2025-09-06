@@ -30,7 +30,8 @@ def call_premium_bmr_api(
         height_cm: Height in centimeters
         age: Age in years
         sex: Biological sex ("male" or "female")
-        activity: Activity level ("sedentary", "light", "moderate", "active", "very_active")
+        activity: Activity level ("sedentary", "light", "moderate",
+                  "active", "very_active")
         bodyfat: Optional body fat percentage (for Katch-McArdle formula)
         lang: Response language ("en" or "ru")
         api_key: API key for authentication
@@ -88,8 +89,14 @@ def main():
         print(f"BMR (Harris): {result['bmr']['harris']} kcal/day")
         print(f"TDEE (Mifflin): {result['tdee']['mifflin']} kcal/day")
         print(f"Activity: {result['activity_description']}")
-        print(f"Maintenance calories: {result['recommended_intake']['maintenance']} kcal/day")
-        print(f"Weight loss calories: {result['recommended_intake']['weight_loss']} kcal/day")
+        print(
+            "Maintenance calories:",
+            f"{result['recommended_intake']['maintenance']} kcal/day",
+        )
+        print(
+            "Weight loss calories:",
+            f"{result['recommended_intake']['weight_loss']} kcal/day",
+        )
         print()
 
     except Exception as e:
@@ -137,7 +144,10 @@ def main():
 
         print(f"Описание активности: {result['activity_description']}")
         print(f"Рекомендации: {result['recommended_intake']['description']}")
-        print(f"Поддержание веса: {result['recommended_intake']['maintenance']} ккал/день")
+        print(
+            "Поддержание веса:",
+            f"{result['recommended_intake']['maintenance']} ккал/день",
+        )
         print()
 
     except Exception as e:
@@ -167,7 +177,9 @@ def main():
         except Exception as e:
             print(f"{activity:<15} | Error: {e}")
 
-    print("\n✨ Premium BMR/TDEE API provides comprehensive metabolic calculations!")
+    print(
+        "\n✨ Premium BMR/TDEE API provides comprehensive metabolic calculations!"
+    )
     print("💡 Use different formulas for different populations:")
     print("   • Mifflin-St Jeor: Most accurate for general population")
     print("   • Harris-Benedict: Traditional formula")

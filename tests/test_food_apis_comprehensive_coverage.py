@@ -333,7 +333,10 @@ class TestUnifiedFoodDatabaseComprehensive:
     @pytest.mark.asyncio
     async def test_search_food_with_results(self):
         """Test search_food with actual results."""
-        from core.food_apis.unified_db import UnifiedFoodDatabase, UnifiedFoodItem
+        from core.food_apis.unified_db import (
+            UnifiedFoodDatabase,
+            UnifiedFoodItem,
+        )
         from core.food_apis.usda_client import USDAFoodItem
 
         with patch('core.food_apis.unified_db.USDAClient') as mock_usda_class:
@@ -440,7 +443,10 @@ class TestUnifiedFoodDatabaseComprehensive:
     @pytest.mark.asyncio
     async def test_get_common_foods_database_cache_save_exception(self):
         """Test get_common_foods_database with cache save exception."""
-        from core.food_apis.unified_db import UnifiedFoodDatabase, UnifiedFoodItem
+        from core.food_apis.unified_db import (
+            UnifiedFoodDatabase,
+            UnifiedFoodItem,
+        )
 
         with patch('core.food_apis.unified_db.USDAClient') as mock_usda_class:
             # Mock USDA search to return results
@@ -479,7 +485,10 @@ class TestUnifiedFoodDatabaseComprehensive:
     @pytest.mark.asyncio
     async def test_unified_db_global_functions(self):
         """Test global unified database functions."""
-        from core.food_apis.unified_db import get_unified_food_db, search_foods_unified
+        from core.food_apis.unified_db import (
+            get_unified_food_db,
+            search_foods_unified,
+        )
 
         with patch('core.food_apis.unified_db.USDAClient'):
             # Test get_unified_food_db
@@ -571,7 +580,10 @@ class TestDatabaseUpdateManagerComprehensive:
         """Test _check_usda_updates when interval has not passed."""
         from datetime import datetime, timedelta
 
-        from core.food_apis.update_manager import DatabaseUpdateManager, DatabaseVersion
+        from core.food_apis.update_manager import (
+            DatabaseUpdateManager,
+            DatabaseVersion,
+        )
 
         with tempfile.TemporaryDirectory() as temp_dir:
             manager = DatabaseUpdateManager(cache_dir=temp_dir)
@@ -609,7 +621,10 @@ class TestDatabaseUpdateManagerComprehensive:
     @pytest.mark.asyncio
     async def test_update_database_callback_exception(self):
         """Test update_database with callback exception."""
-        from core.food_apis.update_manager import DatabaseUpdateManager, UpdateResult
+        from core.food_apis.update_manager import (
+            DatabaseUpdateManager,
+            UpdateResult,
+        )
 
         with tempfile.TemporaryDirectory() as temp_dir:
             manager = DatabaseUpdateManager(cache_dir=temp_dir)
@@ -675,7 +690,10 @@ class TestDatabaseUpdateManagerComprehensive:
     async def test_update_usda_database_no_change(self):
         """Test _update_usda_database when no data change."""
         from core.food_apis.unified_db import UnifiedFoodItem
-        from core.food_apis.update_manager import DatabaseUpdateManager, DatabaseVersion
+        from core.food_apis.update_manager import (
+            DatabaseUpdateManager,
+            DatabaseVersion,
+        )
 
         with tempfile.TemporaryDirectory() as temp_dir:
             manager = DatabaseUpdateManager(cache_dir=temp_dir)
@@ -966,7 +984,10 @@ class TestDatabaseUpdateManagerComprehensive:
     @pytest.mark.asyncio
     async def test_rollback_database_exception(self):
         """Test rollback_database with exception."""
-        from core.food_apis.update_manager import DatabaseUpdateManager, DatabaseVersion
+        from core.food_apis.update_manager import (
+            DatabaseUpdateManager,
+            DatabaseVersion,
+        )
 
         with tempfile.TemporaryDirectory() as temp_dir:
             manager = DatabaseUpdateManager(cache_dir=temp_dir)
@@ -1006,7 +1027,10 @@ class TestDatabaseUpdateManagerComprehensive:
         """Test get_database_status method."""
         from datetime import datetime, timedelta
 
-        from core.food_apis.update_manager import DatabaseUpdateManager, DatabaseVersion
+        from core.food_apis.update_manager import (
+            DatabaseUpdateManager,
+            DatabaseVersion,
+        )
 
         with tempfile.TemporaryDirectory() as temp_dir:
             manager = DatabaseUpdateManager(cache_dir=temp_dir)
@@ -1052,7 +1076,10 @@ class TestDatabaseUpdateManagerComprehensive:
     @pytest.mark.asyncio
     async def test_run_scheduled_update(self):
         """Test run_scheduled_update convenience function."""
-        from core.food_apis.update_manager import DatabaseUpdateManager, run_scheduled_update
+        from core.food_apis.update_manager import (
+            DatabaseUpdateManager,
+            run_scheduled_update,
+        )
 
         with tempfile.TemporaryDirectory() as temp_dir:
             manager = DatabaseUpdateManager(cache_dir=temp_dir)

@@ -13,7 +13,7 @@ def estimate_targets_minimal(sex: str, age: int, height_cm: int, weight_kg: floa
     """
     RU: Очень простой расчёт на время разработки.
     EN: Minimal targets for dev.
-    
+
     Args:
         sex: User's sex ("male" or "female")
         age: User's age in years
@@ -21,7 +21,7 @@ def estimate_targets_minimal(sex: str, age: int, height_cm: int, weight_kg: floa
         weight_kg: User's weight in kilograms
         activity: Activity level multiplier
         goal: User's goal ("loss", "gain", or "maintain")
-        
+
     Returns:
         Dictionary with estimated nutrition targets
     """

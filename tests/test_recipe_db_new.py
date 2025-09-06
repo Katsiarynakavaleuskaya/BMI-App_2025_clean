@@ -93,7 +93,8 @@ def test_scale_recipe_to_kcal():
     # Check that kcal is approximately correct (allowing for some variation)
     assert abs(scaled_meal.kcal - 500) <= 50
 
-def test_scale_recipe_to_kcal_multilingual():
+@pytest.mark.parametrize("lang", ["en", "ru", "es"])
+def test_scale_recipe_to_kcal_multilingual(lang):
     """Test multilingual recipe scaling."""
     # Get the paths to the test data files
     food_csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "food_db_new.csv")
@@ -107,14 +108,12 @@ def test_scale_recipe_to_kcal_multilingual():
     recipe = recipe_db.pick_base_recipe([], 0)  # 0 = breakfast
     assert recipe is not None
 
-    # Test scaling with different languages
-    for lang in ["en", "ru", "es"]:
-        scaled_meal = recipe_db.scale_recipe_to_kcal(recipe, 500, lang)
+    scaled_meal = recipe_db.scale_recipe_to_kcal(recipe, 500, lang)
 
-        # Check that we have translated title
-        assert hasattr(scaled_meal, "title")
-        assert hasattr(scaled_meal, "title_translated")
-        assert scaled_meal.title_translated != ""
+    # Check that we have translated title
+    assert hasattr(scaled_meal, "title")
+    assert hasattr(scaled_meal, "title_translated")
+    assert scaled_meal.title_translated != ""
 
 if __name__ == "__main__":
     pytest.main([__file__])

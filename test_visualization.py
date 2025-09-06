@@ -5,7 +5,10 @@ Test script for BMI visualization functionality.
 
 def test_bmi_visualization_without_matplotlib():
     """Test that visualization gracefully handles missing matplotlib."""
-    from bmi_visualization import MATPLOTLIB_AVAILABLE, generate_bmi_visualization
+    from bmi_visualization import (
+        MATPLOTLIB_AVAILABLE,
+        generate_bmi_visualization,
+    )
 
     print(f"Matplotlib available: {MATPLOTLIB_AVAILABLE}")
 

@@ -6,6 +6,10 @@ help:
 	@echo "Available targets:" && \
 	awk 'BEGIN{FS=":.*##"} /^[a-zA-Z0-9_.-]+:.*##/{printf "  %-22s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
+## Setup pre-commit hook
+pre-commit-setup: ## Install pre-commit hook
+	scripts/pre_commit_setup.sh
+
 ## Create & install venv deps
 venv: ## Create venv and install requirements
 	$(PIP) install -U pip
@@ -35,6 +39,34 @@ lint: ## Lint with ruff
 ## Auto-fix (ruff)
 fmt: ## Format with ruff --fix
 	ruff check . --fix || true
+
+## Auto-fix line lengths
+fmt-lines: ## Automatically fix line length issues with Ruff
+	ruff check . --fix --select=E501
+
+## Show what would be fixed for line lengths
+fmt-lines-dry: ## Show what line length issues Ruff would fix
+	ruff check . --select=E501
+
+## Check line lengths (PEP 8 compliance)
+line-check: ## Check for lines exceeding 79 characters
+	scripts/check_line_lengths.sh
+
+## Check line lengths (dry run)
+line-check-dry: ## Show files with lines exceeding 79 characters (no changes)
+	scripts/check_line_lengths.sh --dry-run
+
+## Add unknown words to dictionary (dry run)
+dict-dry-run: ## Show words that would be added to dictionary
+	python scripts/add_unknown_words.py --dry-run
+
+## Add unknown words to dictionary
+dict-update: ## Add unknown words to dictionary
+	python scripts/add_unknown_words.py
+
+## Update domain dictionary with known terms
+dict-domain: ## Update dictionary with domain-specific terms
+	python scripts/update_domain_dictionary.py
 
 ## Smoke test (auto: 8000 then 8001)
 smoke-auto: ## Try health+bmi on 8000 then 8001
@@ -79,4 +111,4 @@ docker-restart-8001: ## run -d --name bmi-app -p 8001:8000 bmi-app:dev
 	docker run -d --name bmi-app -p 8001:8000 bmi-app:dev
 	@echo "✅ Open: http://127.0.0.1:8001/docs"
 
-.PHONY: help venv dev test cov cov-html lint fmt smoke-auto smoke-8000 smoke-8001 docker-build docker-run docker-run-bg docker-stop docker-restart-8001
+.PHONY: help pre-commit-setup venv dev test cov cov-html lint fmt fmt-lines fmt-lines-dry line-check line-check-dry dict-dry-run dict-update dict-domain smoke-auto smoke-8000 smoke-8001 docker-build docker-run docker-run-bg docker-stop docker-restart-8001

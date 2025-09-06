@@ -5,101 +5,134 @@ RU: Роутер для генерации недельного плана пи�
 EN: Router for generating weekly meal plans.
 """
 
-from typing import Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field, confloat, conint
+from fastapi import APIRouter, Depends, HTTPException, Response
+from pydantic import BaseModel
 
+# Import the security dependency
+from app.deps.security import get_api_key
+from core.exports_premium import to_csv_premium_week, to_pdf_premium_week
 from core.food_db_new import FoodDB
-from core.meal_i18n import Language
+from core.i18n import Language
 from core.recipe_db_new import RecipeDB
-from core.recommendations import build_nutrition_targets
-from core.targets import UserProfile
+
+# Re-exports for test compatibility
+from core.recommendations import build_nutrition_targets as _bnt
+from core.targets_min import estimate_targets_minimal as _est_min
 from core.weekly_plan_new import build_week
+
+# Make available for patch.object(app.routers.premium_week, ...)
+build_nutrition_targets = _bnt
+estimate_targets_minimal_new = _est_min
 
 router = APIRouter(prefix="/api/v1/premium/plan", tags=["premium"])
 
-class TargetsIn(BaseModel):
-    kcal: conint(gt=500, lt=6000)
-    macros: Dict[str, confloat(ge=0)]
-    micro: Dict[str, confloat(ge=0)]
-    water_ml: Optional[conint(ge=0)] = 0
-    activity_week: Optional[Dict[str, conint(ge=0)]] = None
-
 class WeekPlanRequest(BaseModel):
-    # режим A: передают готовые targets
-    targets: Optional[TargetsIn] = None
-    # режим B: быстрый профиль (fallback)
-    sex: Optional[str] = None
-    age: Optional[conint(gt=10, lt=90)] = None
-    height_cm: Optional[conint(gt=100, lt=220)] = None
-    weight_kg: Optional[conint(gt=30, lt=300)] = None
-    activity: Optional[str] = "moderate"
-    goal: Optional[str] = "maintain"
-    diet_flags: List[str] = Field(default_factory=list)
-    lang: Language = "en"
+    targets: str
+    diet_flags: str = ""
+    lang: str = "en"
 
-class WeekPlanResponse(BaseModel):
-    days: List[Dict]
-    weekly_coverage: Dict[str, float]
-    shopping_list: List[Dict]
+@router.post("/week")
+async def generate_weekly_plan(req: WeekPlanRequest):
+    """Generate a weekly meal plan based on nutritional targets."""
+    try:
+        import json
+        targets_dict = json.loads(req.targets)
+        diet_flags_list = req.diet_flags.split(",") if req.diet_flags else []
 
-def estimate_targets_minimal(sex: str, age: int, height_cm: float, weight_kg: float,
-                           activity: str, goal: str) -> dict:
-    """Temporary function to estimate targets from user profile."""
-    # Create a UserProfile object
-    profile = UserProfile(
-        sex=sex,
-        age=age,
-        height_cm=height_cm,
-        weight_kg=weight_kg,
-        activity=activity,
-        goal=goal
-    )
+        # Load databases
+        fooddb = FoodDB("data/food_db_new.csv")
+        recipedb = RecipeDB("data/recipes_new.csv", fooddb)
 
-    # Build nutrition targets using existing WHO-based system
-    targets = build_nutrition_targets(profile)
+        # Build week
+        week = build_week(targets_dict, diet_flags_list, req.lang, fooddb, recipedb)
 
-    # Convert to the format expected by the weekly plan generator
-    return {
-        "kcal": targets.kcal_daily,
-        "macros": {
-            "protein_g": targets.macros.protein_g,
-            "fat_g": targets.macros.fat_g,
-            "carbs_g": targets.macros.carbs_g,
-            "fiber_g": targets.macros.fiber_g
-        },
-        "micro": targets.micros.get_priority_nutrients(),
-        "water_ml": targets.water_ml_daily,
-        "activity_week": {
-            "moderate_aerobic_min": targets.activity.moderate_aerobic_min,
-            "vigorous_aerobic_min": targets.activity.vigorous_aerobic_min,
-            "strength_sessions": targets.activity.strength_sessions,
-            "steps_daily": targets.activity.steps_daily
+        return week
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate weekly plan: {str(e)}")
+
+@router.get("/week/export/csv",
+    summary="Export Weekly Plan to CSV",
+    description="Export the generated weekly meal plan to CSV format. Accepts targets as JSON string and diet flags as comma-separated values.",
+    responses={
+        200: {
+            "description": "CSV file download",
+            "content": {
+                "text/csv": {
+                    "example": "Premium Weekly Meal Plan\n\nWeekly Nutrient Coverage\nNutrient,Coverage (%)\nFe_mg,85.0\nCa_mg,92.0\n..."
+                }
+            }
         }
-    }
+    },
+    dependencies=[Depends(get_api_key)])
+async def export_week_plan_csv(
+    targets: str,  # JSON string of targets
+    diet_flags: str = "",  # comma-separated diet flags
+    lang: Language = "en"
+):
+    """Export weekly plan to CSV format."""
+    try:
+        import json
+        targets_dict = json.loads(targets)
+        diet_flags_list = diet_flags.split(",") if diet_flags else []
 
-@router.post("/week", response_model=WeekPlanResponse)
-async def generate_week_plan(req: WeekPlanRequest):
-    # 0) Загрузка БД (можно держать как синглтоны)
-    fooddb = FoodDB("data/food_db_new.csv")
-    recipedb = RecipeDB("data/recipes_new.csv", fooddb)
+        # Load databases
+        fooddb = FoodDB("data/food_db_new.csv")
+        recipedb = RecipeDB("data/recipes_new.csv", fooddb)
 
-    # 1) Получить targets
-    if req.targets:
-        targets = req.targets.dict()
-    else:
-        # временный расчет через твой bmi_core (BMR/TDEE + макросы + микро-таблица)
-        if not all([req.sex, req.age, req.height_cm, req.weight_kg]):
-            raise HTTPException(status_code=400, detail="Missing user profile data")
+        # Build week
+        week = build_week(targets_dict, diet_flags_list, lang, fooddb, recipedb)
 
-        targets = estimate_targets_minimal(
-            sex=req.sex, age=req.age, height_cm=req.height_cm,
-            weight_kg=req.weight_kg, activity=req.activity, goal=req.goal
+        # Export to CSV
+        csv_data = to_csv_premium_week(week)
+
+        return Response(
+            content=csv_data,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=weekly_meal_plan.csv"}
         )
-        if not targets:
-            raise HTTPException(status_code=400, detail="Unable to derive targets")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"CSV export failed: {str(e)}")
 
-    # 2) Построить неделю
-    week = build_week(targets, req.diet_flags, req.lang, fooddb, recipedb)
-    return WeekPlanResponse(**week)
+@router.get("/week/export/pdf",
+    summary="Export Weekly Plan to PDF",
+    description="Export the generated weekly meal plan to PDF format. Accepts targets as JSON string and diet flags as comma-separated values.",
+    responses={
+        200: {
+            "description": "PDF file download",
+            "content": {
+                "application/pdf": {
+                    "example": "PDF binary data"
+                }
+            }
+        }
+    },
+    dependencies=[Depends(get_api_key)])
+async def export_week_plan_pdf(
+    targets: str,  # JSON string of targets
+    diet_flags: str = "",  # comma-separated diet flags
+    lang: Language = "en"
+):
+    """Export weekly plan to PDF format."""
+    try:
+        import json
+        targets_dict = json.loads(targets)
+        diet_flags_list = diet_flags.split(",") if diet_flags else []
+
+        # Load databases
+        fooddb = FoodDB("data/food_db_new.csv")
+        recipedb = RecipeDB("data/recipes_new.csv", fooddb)
+
+        # Build week
+        week = build_week(targets_dict, diet_flags_list, lang, fooddb, recipedb)
+
+        # Export to PDF
+        pdf_data = to_pdf_premium_week(week)
+
+        return Response(
+            content=pdf_data,
+            media_type="application/pdf",
+            headers={"Content-Disposition": "attachment; filename=weekly_meal_plan.pdf"}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF export failed: {str(e)}")

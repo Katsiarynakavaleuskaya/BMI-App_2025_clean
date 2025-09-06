@@ -1,17 +1,16 @@
 {
-  "generated_at": "2025-09-04T19:14:22.332608",
-  "total_items": 10,
+  "generated_at": "2025-09-05T19:08:45.609349",
+  "total_items": 18,
   "sources": [
     "USDA",
+    "CIQUAL",
+    "INFOODS",
     "OFF"
   ],
-  "merge_stats": {
-    "usda_records": 10,
-    "off_records": 10
-  },
+  "merge_stats": {},
   "food_groups": {
-    "protein": 7,
-    "grain": 2,
+    "protein": 12,
+    "grain": 5,
     "fat": 1
   },
   "top_foods_by_nutrient": {
@@ -19,6 +18,10 @@
       {
         "name": "chicken_breast",
         "value": 31.0
+      },
+      {
+        "name": "sardine_canned_drained",
+        "value": 24.6
       },
       {
         "name": "salmon",
@@ -29,12 +32,8 @@
         "value": 16.9
       },
       {
-        "name": "greek_yogurt",
-        "value": 10.0
-      },
-      {
-        "name": "lentils",
-        "value": 9.0
+        "name": "amaranth_grain",
+        "value": 14.0
       }
     ],
     "fat_g": [
@@ -47,38 +46,38 @@
         "value": 13.0
       },
       {
+        "name": "sardine_canned_drained",
+        "value": 11.5
+      },
+      {
+        "name": "amaranth_grain",
+        "value": 7.0
+      },
+      {
         "name": "oats",
         "value": 6.9
-      },
-      {
-        "name": "tofu",
-        "value": 4.8
-      },
-      {
-        "name": "chicken_breast",
-        "value": 3.6
       }
     ],
     "carbs_g": [
+      {
+        "name": "sorghum_grain",
+        "value": 74.6
+      },
+      {
+        "name": "millet_grain",
+        "value": 73.0
+      },
+      {
+        "name": "teff_grain",
+        "value": 73.0
+      },
       {
         "name": "oats",
         "value": 66.3
       },
       {
-        "name": "brown_rice",
-        "value": 23.0
-      },
-      {
-        "name": "banana",
-        "value": 23.0
-      },
-      {
-        "name": "lentils",
-        "value": 20.0
-      },
-      {
-        "name": "spinach_raw",
-        "value": 3.6
+        "name": "amaranth_grain",
+        "value": 65.0
       }
     ],
     "fiber_g": [
@@ -87,64 +86,64 @@
         "value": 10.6
       },
       {
+        "name": "millet_grain",
+        "value": 8.5
+      },
+      {
         "name": "lentils",
         "value": 8.0
       },
       {
-        "name": "banana",
-        "value": 2.6
+        "name": "teff_grain",
+        "value": 8.0
       },
       {
-        "name": "spinach_raw",
-        "value": 2.2
-      },
-      {
-        "name": "brown_rice",
-        "value": 1.8
+        "name": "legumes",
+        "value": 8.0
       }
     ],
     "Fe_mg": [
+      {
+        "name": "teff_grain",
+        "value": 8.4
+      },
+      {
+        "name": "amaranth_grain",
+        "value": 7.6
+      },
       {
         "name": "oats",
         "value": 4.7
       },
       {
-        "name": "lentils",
-        "value": 3.3
+        "name": "sorghum_grain",
+        "value": 4.4
       },
       {
-        "name": "spinach_raw",
-        "value": 2.7
-      },
-      {
-        "name": "tofu",
-        "value": 2.7
-      },
-      {
-        "name": "chicken_breast",
-        "value": 0.7
+        "name": "legumes",
+        "value": 3.7
       }
     ],
     "Ca_mg": [
+      {
+        "name": "sardine_canned_drained",
+        "value": 382.0
+      },
       {
         "name": "tofu",
         "value": 350.0
       },
       {
-        "name": "greek_yogurt",
-        "value": 110.0
+        "name": "cassava_leaf",
+        "value": 189.0
       },
       {
-        "name": "spinach_raw",
-        "value": 99.0
+        "name": "teff_grain",
+        "value": 170.0
       },
       {
-        "name": "oats",
-        "value": 54.0
-      },
-      {
-        "name": "lentils",
-        "value": 19.0
+        "name": "amaranth_grain",
+        "value": 159.0
       }
     ]
   }

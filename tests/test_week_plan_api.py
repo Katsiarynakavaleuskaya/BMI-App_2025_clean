@@ -59,7 +59,10 @@ def test_week_plan_with_targets():
     assert len(data["days"]) == 7
 
     # Check that weekly_coverage has all required keys
-    micro_keys = ["Fe_mg", "Ca_mg", "VitD_IU", "B12_ug", "Folate_ug", "Iodine_ug", "K_mg", "Mg_mg"]
+    micro_keys = [
+        "Fe_mg", "Ca_mg", "VitD_IU", "B12_ug",
+        "Folate_ug", "Iodine_ug", "K_mg", "Mg_mg"
+    ]
     for key in micro_keys:
         assert key in data["weekly_coverage"]
 
@@ -93,7 +96,8 @@ def test_week_plan_with_profile():
     assert "weekly_coverage" in data
     assert "shopping_list" in data
 
-def test_week_plan_multilingual():
+@pytest.mark.parametrize("lang", ["en", "ru", "es"])
+def test_week_plan_multilingual(lang):
     """Test that the API works with different languages."""
     # Test data with pre-calculated targets
     targets_data = {
@@ -119,22 +123,20 @@ def test_week_plan_multilingual():
         "diet_flags": [],
     }
 
-    # Test with different languages
-    for lang in ["en", "ru", "es"]:
-        test_data = targets_data.copy()
-        test_data["lang"] = lang
+    test_data = targets_data.copy()
+    test_data["lang"] = lang
 
-        # Make request to the API
-        response = client.post("/api/v1/premium/plan/week", json=test_data)
+    # Make request to the API
+    response = client.post("/api/v1/premium/plan/week", json=test_data)
 
-        # Check that the response is successful
-        assert response.status_code == 200
+    # Check that the response is successful
+    assert response.status_code == 200
 
-        # Check structure
-        data = response.json()
-        assert "days" in data
-        assert "weekly_coverage" in data
-        assert "shopping_list" in data
+    # Check structure
+    data = response.json()
+    assert "days" in data
+    assert "weekly_coverage" in data
+    assert "shopping_list" in data
 
 def test_week_plan_missing_data():
     """Test that the API handles missing data correctly."""

@@ -13,7 +13,12 @@ from __future__ import annotations
 from typing import Dict, List, Set, Tuple
 
 from .food_db import FoodItem, parse_food_db, pick_booster_for
-from .recipe_db import Recipe, calculate_recipe_nutrients, parse_recipe_db, scale_recipe_to_kcal
+from .recipe_db import (
+    Recipe,
+    calculate_recipe_nutrients,
+    parse_recipe_db,
+    scale_recipe_to_kcal,
+)
 
 
 def create_daily_plate(kcal_total: int, diet_flags: Set[str],
@@ -22,13 +27,13 @@ def create_daily_plate(kcal_total: int, diet_flags: Set[str],
     """
     RU: Создает план питания на день.
     EN: Creates a daily meal plan.
-    
+
     Args:
         kcal_total: Total daily calories
         diet_flags: Dietary restrictions/preferences
         food_db: Food database (will be loaded if None)
         recipe_db: Recipe database (will be loaded if None)
-        
+
     Returns:
         Dictionary with meal plan and nutrient analysis
     """

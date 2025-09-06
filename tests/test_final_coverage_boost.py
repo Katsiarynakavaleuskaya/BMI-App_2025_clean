@@ -1,9 +1,9 @@
 """
-Final targeted tests to boost coverage to exactly 97%+.
+Final tests to boost coverage to 97%.
 """
 
 import os
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,236 +12,152 @@ from app import app
 
 
 class TestFinalCoverageBoost:
-    """Final targeted tests to boost coverage to exactly 97%+."""
+    """Final tests to boost coverage to 97%."""
 
     def setup_method(self):
-        """Set up test environment."""
+        """Set up test client."""
         os.environ["API_KEY"] = "test_key"
         self.client = TestClient(app)
 
     def teardown_method(self):
-        """Clean up test environment."""
+        """Clean up after tests."""
         if "API_KEY" in os.environ:
             del os.environ["API_KEY"]
 
-    def test_unified_db_py_line_133_fixed(self):
-        """Test line 133 in unified_db.py (search_food error handling)."""
-        # Test search_food with exception in cache loading
-        try:
-            with patch('core.food_apis.unified_db.UnifiedFoodDatabase._load_cache', side_effect=Exception("Cache error")):
-                from core.food_apis.unified_db import UnifiedFoodDatabase
-                _ = UnifiedFoodDatabase()  # Use _ to indicate we're not using the variable
-                # Should not crash, just log error and continue
-        except Exception:
-            # Exception is expected, but the code should handle it gracefully
-            pass
+    def test_normalize_flags_edge_cases(self):
+        """Test edge cases in normalize_flags function."""
+        from app import normalize_flags
 
-    def test_unified_db_py_line_165_fixed(self):
-        """Test line 165 in unified_db.py (get_food_by_id ValueError)."""
-        from core.food_apis.unified_db import UnifiedFoodDatabase
-        db = UnifiedFoodDatabase()
-        # Test with invalid USDA FDC ID that causes ValueError
-        import asyncio
-        try:
-            _ = asyncio.run(db.get_food_by_id("usda", "invalid_id"))  # Use _ to indicate we're not using the variable
-            # Should handle gracefully
-        except Exception:
-            # Exception is expected, but the code should handle it gracefully
-            pass
+        # Test with unknown gender
+        result = normalize_flags("other", "no", "no")
+        assert result["gender_male"] is False
+        assert result["is_pregnant"] is False
+        assert result["is_athlete"] is False
 
-    def test_unified_db_py_lines_171_175_fixed(self):
-        """Test lines 171-175 in unified_db.py (_get_cache_file exception)."""
-        # Test _get_cache_file with exception in mkdir
-        try:
-            with patch('core.food_apis.unified_db.Path.mkdir', side_effect=Exception("Mkdir error")):
-                from core.food_apis.unified_db import UnifiedFoodDatabase
-                _ = UnifiedFoodDatabase()  # Use _ to indicate we're not using the variable
-                # Should handle gracefully
-        except Exception:
-            # Exception is expected, but the code should handle it gracefully
-            pass
+        # Test with athlete variations
+        result = normalize_flags("male", "no", "athlete")
+        assert result["is_athlete"] is True
 
-    def test_update_manager_py_lines_264_296_fixed(self):
-        """Test lines 264-296 in update_manager.py (_validate_food_data detailed)."""
-        from core.food_apis.unified_db import UnifiedFoodItem
-        from core.food_apis.update_manager import DatabaseUpdateManager
+        # Test with pregnant male (should not be pregnant)
+        result = normalize_flags("male", "yes", "no")
+        assert result["is_pregnant"] is False
 
-        manager = DatabaseUpdateManager()
-
-        # Test various validation scenarios
-        foods = {
-            "missing_fields": UnifiedFoodItem(
-                name="",  # Missing name
-                source="",
-                source_id="123",
-                nutrients_per_100g={"protein_g": -5.0},  # Negative value
-                cost_per_100g=0.0,
-                tags=[],
-                availability_regions=[]
-            ),
-            "missing_nutrients": UnifiedFoodItem(
-                name="Test Food",
-                source="test",
-                source_id="123",
-                nutrients_per_100g={},  # Missing required nutrients
-                cost_per_100g=0.0,
-                tags=[],
-                availability_regions=[]
-            ),
-            "unrealistic_values": UnifiedFoodItem(
-                name="Test Food",
-                source="test",
-                source_id="123",
-                nutrients_per_100g={"protein_g": 150.0},  # Unrealistic value (>100g per 100g)
-                cost_per_100g=0.0,
-                tags=[],
-                availability_regions=[]
-            )
-        }
-
-        # Add the synchronous wrapper method for testing
-        import asyncio
-        try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            errors = loop.run_until_complete(manager._validate_food_data(foods))
-            # Should return validation errors
-            assert isinstance(errors, list)
-        except Exception:
-            # Exception is expected, but the code should handle it gracefully
-            pass
-
-    def test_update_manager_py_line_394_fixed(self):
-        """Test line 394 in update_manager.py (_cleanup_old_backups exception)."""
-        # Test _cleanup_old_backups with exception in glob
-        try:
-            with patch('core.food_apis.update_manager.Path.glob', side_effect=Exception("Glob error")):
-                from core.food_apis.update_manager import DatabaseUpdateManager
-                manager = DatabaseUpdateManager()
-                # Test with async function properly
-                import asyncio
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(manager._cleanup_old_backups("usda"))
-                # Should handle gracefully
-        except Exception:
-            # Exception is expected, but the code should handle it gracefully
-            pass
-
-    def test_menu_engine_py_lines_61_64(self):
-        """Test lines 61-64 in menu_engine.py (Recipe.calculate_nutrients_per_serving detailed)."""
-        from core.menu_engine import Recipe
-
-        recipe = Recipe(
-            name="Test Recipe",
-            ingredients={"chicken_breast": 100.0},
-            servings=2,
-            preparation_time_min=30,
-            difficulty="easy",
-            tags=["test"],
-            instructions=[]
-        )
-
-        # Test with food database that has the ingredient
-        from core.menu_engine import FoodItem
-        food_db = {
-            "chicken_breast": FoodItem(
-                name="Chicken Breast",
-                nutrients_per_100g={
-                    "protein_g": 23.0,
-                    "fat_g": 3.6,
-                    "carbs_g": 0.0
-                },
-                cost_per_100g=2.50,
-                tags=[],
-                availability_regions=[]
-            )
-        }
-
-        nutrients = recipe.calculate_nutrients_per_serving(food_db)
-        assert isinstance(nutrients, dict)
-
-    def test_menu_engine_py_line_421_fixed(self):
-        """Test line 421 in menu_engine.py (_get_default_food_db fallback detailed)."""
-        # Test _get_default_food_db with exception in get_unified_food_db
-        with patch('core.menu_engine.get_unified_food_db', side_effect=Exception("API error")):
-            from core.menu_engine import _get_default_food_db
-            result = _get_default_food_db()
-            # Should return fallback data
-            assert isinstance(result, dict)
-            assert len(result) > 0
-
-    def test_menu_engine_py_line_423_fixed(self):
-        """Test line 423 in menu_engine.py (_get_default_recipe_db detailed)."""
-        from core.menu_engine import _get_default_recipe_db
-        result = _get_default_recipe_db()
-        assert isinstance(result, dict)
-        # Check that it contains some default recipes
-        assert len(result) >= 0
-
-    def test_menu_engine_py_line_425_fixed(self):
-        """Test line 425 in menu_engine.py (_enhance_meals_with_micros detailed)."""
-        from core.menu_engine import _enhance_meals_with_micros
-        meals = [{"title": "Chicken Salad"}]
-        food_db = {}
-        recipe_db = {}
-        # Fix the diet_flags parameter
-        result = _enhance_meals_with_micros(meals, food_db, recipe_db, set())
-        assert isinstance(result, list)
-
-    def test_menu_engine_py_line_467_fixed(self):
-        """Test line 467 in menu_engine.py (_calculate_total_nutrients detailed)."""
-        from core.menu_engine import _calculate_total_nutrients
-        # Test with meals that have ingredients
-        meals = [{
-            "ingredients": {
-                "chicken_breast": 100.0
+    def test_weekly_plan_endpoint_make_weekly_menu_none(self):
+        """Test weekly plan endpoint when make_weekly_menu is None."""
+        with patch('app.make_weekly_menu', None):
+            payload = {
+                "sex": "male",
+                "age": 30,
+                "height_cm": 175,
+                "weight_kg": 70,
+                "activity": "moderate",
+                "goal": "maintain"
             }
-        }]
-        from core.menu_engine import FoodItem
-        food_db = {
-            "chicken_breast": FoodItem(
-                name="Chicken Breast",
-                nutrients_per_100g={
-                    "protein_g": 23.0,
-                    "fat_g": 3.6,
-                    "carbs_g": 0.0
-                },
-                cost_per_100g=2.50,
-                tags=[],
-                availability_regions=[]
-            )
-        }
-        result = _calculate_total_nutrients(meals, food_db)
-        assert isinstance(result, dict)
 
-    def test_menu_engine_py_line_490_fixed(self):
-        """Test line 490 in menu_engine.py (_estimate_daily_cost detailed)."""
-        from core.menu_engine import _estimate_daily_cost
-        # Test with meals that have ingredients and title
-        meals = [{
-            "title": "Chicken Salad",
-            "ingredients": {
-                "chicken_breast": 100.0
+            response = self.client.post("/api/v1/premium/plan/week", json=payload, headers={"X-API-Key": "test_key"})
+            assert response.status_code == 503
+            assert "not available" in response.json()["detail"]
+
+    def test_weekly_plan_endpoint_make_weekly_menu_exception(self):
+        """Test weekly plan endpoint when make_weekly_menu raises exception."""
+        mock_make_weekly = MagicMock()
+        mock_make_weekly.side_effect = Exception("Test error")
+
+        with patch('app.make_weekly_menu', mock_make_weekly):
+            payload = {
+                "sex": "male",
+                "age": 30,
+                "height_cm": 175,
+                "weight_kg": 70,
+                "activity": "moderate",
+                "goal": "maintain"
             }
-        }]
-        from core.menu_engine import FoodItem
-        food_db = {
-            "chicken_breast": FoodItem(
-                name="Chicken Breast",
-                nutrients_per_100g={
-                    "protein_g": 23.0,
-                    "fat_g": 3.6,
-                    "carbs_g": 0.0
-                },
-                cost_per_100g=2.50,
-                tags=[],
-                availability_regions=[]
-            )
+
+            response = self.client.post("/api/v1/premium/plan/week", json=payload, headers={"X-API-Key": "test_key"})
+            assert response.status_code == 500
+            assert "failed" in response.json()["detail"]
+
+    def test_weekly_plan_endpoint_make_weekly_menu_value_error(self):
+        """Test weekly plan endpoint when make_weekly_menu raises ValueError."""
+        mock_make_weekly = MagicMock()
+        mock_make_weekly.side_effect = ValueError("Invalid input")
+
+        with patch('app.make_weekly_menu', mock_make_weekly):
+            payload = {
+                "sex": "male",
+                "age": 30,
+                "height_cm": 175,
+                "weight_kg": 70,
+                "activity": "moderate",
+                "goal": "maintain"
+            }
+
+            response = self.client.post("/api/v1/premium/plan/week", json=payload, headers={"X-API-Key": "test_key"})
+            assert response.status_code == 400
+            assert "Invalid input" in response.json()["detail"]
+
+    def test_debug_env_endpoint(self):
+        """Test debug_env endpoint."""
+        response = self.client.get("/debug_env", headers={"X-API-Key": "test_key"})
+        assert response.status_code == 200
+        data = response.json()
+        assert "FEATURE_INSIGHT" in data
+        assert "LLM_PROVIDER" in data
+        assert "GROK_MODEL" in data
+        assert "GROK_ENDPOINT" in data
+        assert "insight_enabled" in data
+
+    def test_nutrient_gaps_new_endpoint(self):
+        """Test the new nutrient-gaps endpoint."""
+        payload = {
+            "consumed_nutrients": {
+                "protein_g": 50,
+                "fat_g": 70,
+                "carbs_g": 250
+            },
+            "user_profile": {
+                "sex": "male",
+                "age": 30,
+                "height_cm": 175,
+                "weight_kg": 70,
+                "activity": "sedentary",
+                "goal": "maintain",
+                "deficit_pct": 20,
+                "surplus_pct": 10,
+                "bodyfat": None,
+                "diet_flags": [],
+                "life_stage": "adult"
+            }
         }
-        result = _estimate_daily_cost(meals, food_db)
-        assert isinstance(result, (int, float))
 
+        response = self.client.post("/api/v1/premium/nutrient-gaps", json=payload, headers={"X-API-Key": "test_key"})
+        # May succeed or fail depending on implementation availability
+        assert response.status_code in [200, 500, 503]
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+    def test_nutrient_gaps_new_endpoint_analyze_none(self):
+        """Test the new nutrient-gaps endpoint when analyze_nutrient_gaps is None."""
+        with patch('app.analyze_nutrient_gaps', None):
+            payload = {
+                "consumed_nutrients": {
+                    "protein_g": 50,
+                    "fat_g": 70,
+                    "carbs_g": 250
+                },
+                "user_profile": {
+                    "sex": "male",
+                    "age": 30,
+                    "height_cm": 175,
+                    "weight_kg": 70,
+                    "activity": "sedentary",
+                    "goal": "maintain",
+                    "deficit_pct": 20,
+                    "surplus_pct": 10,
+                    "bodyfat": None,
+                    "diet_flags": [],
+                    "life_stage": "adult"
+                }
+            }
+
+            response = self.client.post("/api/v1/premium/nutrient-gaps", json=payload, headers={"X-API-Key": "test_key"})
+            assert response.status_code == 503
+            assert "not available" in response.json()["detail"]

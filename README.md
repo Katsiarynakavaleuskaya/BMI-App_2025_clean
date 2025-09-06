@@ -12,6 +12,7 @@ PulsePlate is a comprehensive health and nutrition application that provides BMI
 ## 📋 Important Note - Project Tracking
 
 **All team members should regularly review the project TODO files:**
+
 - [PROJECT_TODO.md](PROJECT_TODO.md) - Main project tracking in English
 - [TODO.md](TODO.md) - Additional tasks and issues in Russian
 
@@ -95,14 +96,18 @@ The merged food database follows a standardized schema:
 ## Installation
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/your-username/PulsePlate.git
    cd PulsePlate
    ```
 
 2. Install dependencies:
+
    ```bash
+
 pip install -r requirements.txt
+
    ```
 
 3. Set up environment variables:
@@ -114,6 +119,7 @@ pip install -r requirements.txt
 ## Usage
 
 Start the application:
+
 ```bash
 uvicorn app:app --host 0.0.0.0 --port 8000
 ```
@@ -128,6 +134,7 @@ Access the API at `http://localhost:8000`
 - `POST /api/v1/premium/plan/week` - Generate weekly meal plan (open by default)
 
 ### Auth behavior for weekly plan
+
 - Dev (default): open access to simplify local testing and CI.
 - Prod (optional): set `FEATURE_ENFORCE_AUTH_WEEK=1` and `API_KEY=...` to enforce header `X-API-Key` for `/api/v1/premium/plan/week`.
   - With the flag enabled, invalid or missing key returns `403`.
@@ -136,14 +143,17 @@ Access the API at `http://localhost:8000`
 ## Testing
 
 - Regular test suite (default RU localization):
+
   ```bash
   pytest
   ```
 
 - Strict suite (alternative RU wording for BMI categories):
+
   ```bash
   RU_STRICT_LOCALIZATION=1 pytest tests_strict
   ```
+
   The env flag switches RU translations to match `tests_strict` expectations.
 
 ## Development

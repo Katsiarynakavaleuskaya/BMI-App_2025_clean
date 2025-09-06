@@ -11,7 +11,12 @@ import tempfile
 import pytest
 
 from core.food_db import parse_food_db
-from core.recipe_db import Recipe, calculate_recipe_nutrients, parse_recipe_db, scale_recipe_to_kcal
+from core.recipe_db import (
+    Recipe,
+    calculate_recipe_nutrients,
+    parse_recipe_db,
+    scale_recipe_to_kcal,
+)
 
 
 def test_parse_recipe_db():

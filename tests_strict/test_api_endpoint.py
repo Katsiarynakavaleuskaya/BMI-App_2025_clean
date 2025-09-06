@@ -1,7 +1,8 @@
 """
 Test script for the premium week plan API endpoint.
 
-This script tests the /api/v1/premium/plan/week endpoint with different languages.
+This script tests the /api/v1/premium/plan/week endpoint with
+different languages.
 """
 
 import os

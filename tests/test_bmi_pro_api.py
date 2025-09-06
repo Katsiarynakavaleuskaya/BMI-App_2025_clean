@@ -93,7 +93,9 @@ class TestBMIProAPI:
         assert response.status_code == 422  # Validation error
 
     def test_bmi_pro_endpoint_missing_api_key(self):
-        """Test BMI Pro endpoint without API key."""
+        """Test BMI Pro endpoint without API key in prod environment."""
+        # Set APP_ENV to prod to enforce API key requirement
+        os.environ["APP_ENV"] = "prod"
         data = {
             "weight_kg": 70.0,
             "height_cm": 175.0,
@@ -107,3 +109,7 @@ class TestBMIProAPI:
 
         response = self.client.post("/api/v1/bmi/pro", json=data)
         assert response.status_code == 403  # Forbidden
+
+        # Clean up
+        if "APP_ENV" in os.environ:
+            del os.environ["APP_ENV"]

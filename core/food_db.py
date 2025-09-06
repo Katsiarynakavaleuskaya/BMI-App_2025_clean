@@ -91,10 +91,10 @@ def parse_food_db(csv_path: str = "data/food_db.csv") -> Dict[str, FoodItem]:
     """
     RU: Парсит CSV файл базы данных продуктов.
     EN: Parse food database CSV file.
-    
+
     Args:
         csv_path: Path to the food database CSV file
-        
+
     Returns:
         Dictionary mapping food names to FoodItem objects
     """
@@ -134,32 +134,50 @@ def parse_food_db(csv_path: str = "data/food_db.csv") -> Dict[str, FoodItem]:
     return food_db
 
 
+# RU: Стабильное mapping доноров микро. EN: Stable mapping of micro donors.
+# RU: Стабильное mapping доноров микро. EN: Stable mapping of micro donors.
+DONORS = {
+    "Fe_mg":      ["lentils","spinach_raw","tofu","chicken_breast"],
+    "Ca_mg":      ["greek_yogurt","tofu","spinach_raw"],
+    "VitD_IU":    ["salmon","egg"],
+    "B12_ug":     ["salmon","chicken_breast","greek_yogurt"],
+    "Folate_ug":  ["spinach_raw","lentils"],
+    "Iodine_ug":  ["salmon"],
+    "K_mg":       ["banana","spinach_raw","potato"],
+    "Mg_mg":      ["oats","spinach_raw","lentils"],
+}
+
+
 def pick_booster_for(micro: str, flags: Set[str], food_db: Dict[str, FoodItem]) -> Optional[str]:
     """
     RU: Выбирает продукт-бустер для конкретного микронутриента.
     EN: Picks a booster food for a specific micronutrient.
-    
+
     Args:
         micro: Micronutrient name (e.g., "iron_mg", "folate_ug")
         flags: Dietary flags to consider
         food_db: Food database
-        
+
     Returns:
         Name of the best booster food or None if not found
     """
-    # Define which foods are good sources for each micronutrient
-    booster_candidates = {
-        "iron_mg": ["lentils", "spinach_raw", "tofu"],
-        "calcium_mg": ["tofu"],
-        "folate_ug": ["lentils", "spinach_raw"],
-        "vitamin_d_iu": ["salmon"],
-        "b12_ug": ["chicken_breast", "salmon", "greek_yogurt"],
-        "iodine_ug": ["chicken_breast", "salmon", "greek_yogurt"],
-        "magnesium_mg": ["lentils", "spinach_raw", "tofu"],
-        "potassium_mg": ["lentils", "spinach_raw", "tofu"],
+    # Normalize incoming nutrient key to our donor table keys
+    alias_map = {
+        "iron_mg": "Fe_mg",
+        "calcium_mg": "Ca_mg",
+        "vitamin_d_iu": "VitD_IU",
+        "b12_ug": "B12_ug",
+        "folate_ug": "Folate_ug",
+        "iodine_ug": "Iodine_ug",
+        "potassium_mg": "K_mg",
+        "magnesium_mg": "Mg_mg",
     }
+    key = micro
+    if key not in DONORS:
+        key = alias_map.get(str(micro).lower(), micro)
 
-    candidates = booster_candidates.get(micro, [])
+    # Use the stable donor mapping
+    candidates = DONORS.get(key, [])
 
     # Filter by dietary flags
     filtered_candidates = []
@@ -167,21 +185,38 @@ def pick_booster_for(micro: str, flags: Set[str], food_db: Dict[str, FoodItem]) 
         if candidate in food_db:
             food = food_db[candidate]
             # Check if food matches dietary flags
-            if not flags or flags.issubset(food.flags) or not flags.intersection(food.flags):
+            if not flags or _compatible(food.flags, flags):
                 filtered_candidates.append(candidate)
 
     # Return the first matching candidate
     return filtered_candidates[0] if filtered_candidates else None
 
 
+def _compatible(food_flags: Set[str], diet_flags: Set[str]) -> bool:
+    """
+    RU: Проверяет совместимость флагов еды с диетическими флагами.
+    EN: Checks compatibility of food flags with dietary flags.
+    """
+    # VEG запрещает OMNI
+    if "VEG" in diet_flags and "OMNI" in food_flags:
+        return False
+    # PESC запрещает OMNI
+    if "PESC" in diet_flags and "OMNI" in food_flags:
+        return False
+    # GF требует GF-совместимое
+    if "GF" in diet_flags and "GF" not in food_flags:
+        return False
+    return True
+
+
 def aggregate_shopping(days: List[Dict]) -> Dict[str, float]:
     """
     RU: Агрегирует список покупок за несколько дней.
     EN: Aggregates shopping list across multiple days.
-    
+
     Args:
         days: List of daily meal plans with ingredients
-        
+
     Returns:
         Dictionary mapping ingredient names to total amounts needed
     """

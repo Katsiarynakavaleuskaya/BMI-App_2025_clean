@@ -141,6 +141,8 @@ class TestTargetsAPI:
 
     def test_targets_endpoint_missing_api_key(self):
         """Test targets endpoint without API key."""
+        # Set APP_ENV to prod to enforce API key requirement
+        os.environ["APP_ENV"] = "prod"
         data = {
             "sex": "male",
             "age": 30,
@@ -151,6 +153,9 @@ class TestTargetsAPI:
 
         response = self.client.post("/api/v1/premium/targets", json=data)
         assert response.status_code == 403
+        # Clean up
+        if "APP_ENV" in os.environ:
+            del os.environ["APP_ENV"]
 
     def test_targets_endpoint_internal_error(self):
         """Test targets endpoint with internal error."""

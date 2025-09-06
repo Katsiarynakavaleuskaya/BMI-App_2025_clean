@@ -127,7 +127,7 @@ All API endpoints accept a language parameter:
 
 The supported language codes are:
 - "ru" for Russian
-- "en" for English  
+- "en" for English
 - "es" for Spanish
 
 When no language parameter is provided, the application defaults to Russian ("ru").

@@ -33,7 +33,7 @@ class FoodItem:
 
 class FoodDB:
     """RU: Хранилище продуктов (100 г). EN: Simple 100g-based food database."""
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str = "data/food_db_new.csv") -> None:
         self.items: Dict[str, FoodItem] = {}
         with open(path, newline="", encoding="utf-8") as f:
             for row in csv.DictReader(f):
@@ -63,30 +63,48 @@ class FoodDB:
         """RU: Выбрать продукт-донор для микро с учетом флагов диеты.
            EN: Pick a donor food for given micro respecting diet flags.
         """
+        # Updated donor table to match DoD requirements
         donors = {
-            "Fe_mg": ["lentils","spinach","tofu","chicken_breast"],
-            "Ca_mg": ["greek_yogurt","tofu","spinach"],
-            "VitD_IU": ["salmon","eggs?"],
-            "B12_ug": ["salmon","chicken_breast","greek_yogurt"],
-            "Folate_ug": ["spinach","lentils"],
-            "Iodine_ug": ["salmon"],  # и/или йодированная соль (тут пропускаем)
-            "K_mg": ["banana","spinach","potato?"],
-            "Mg_mg": ["oats","spinach","lentils"],
+            "Fe_mg": ["lentils", "spinach_raw", "tofu", "chicken_breast"],
+            "Ca_mg": ["greek_yogurt", "tofu", "spinach_raw"],
+            "VitD_IU": ["salmon", "egg"],
+            "B12_ug": ["salmon", "chicken_breast", "greek_yogurt"],
+            "Folate_ug": ["spinach_raw", "lentils"],
+            "Iodine_ug": ["salmon"],
+            "K_mg": ["banana", "spinach_raw", "potato"],
+            "Mg_mg": ["oats", "spinach_raw", "lentils"],
         }
-        for candidate in donors.get(micro, []):
-            item = self.items.get(candidate)
+        # Ensure calcium booster favors yogurt if compatible
+        if micro == "Ca_mg" and "greek_yogurt" in self.items:
+            item = self.items.get("greek_yogurt")
+            if item and self._compatible(item.flags, diet_flags):
+                return "greek_yogurt"
+        cand_list = donors.get(micro, [])
+        # Prefer spinach for iron when VEG is set
+        if micro == "Fe_mg" and "VEG" in (diet_flags or []):
+            # ensure spinach_raw prioritized if present
+            if "spinach_raw" in cand_list:
+                cand_list = ["spinach_raw"] + [c for c in cand_list if c != "spinach_raw"]
+        for candidate in cand_list:
+            # Allow fallback from spinach_raw -> spinach if DB uses different naming
+            cand_key = candidate
+            if candidate == "spinach_raw" and "spinach_raw" not in self.items and "spinach" in self.items:
+                cand_key = "spinach"
+            item = self.items.get(cand_key)
             if not item:
                 continue
             if self._compatible(item.flags, diet_flags):
-                return candidate
+                return cand_key
         return None
 
     def _compatible(self, food_flags: List[str], diet_flags: List[str]) -> bool:
-        # RU: очень простой фильтр — подойдет для MVP
-        if "VEG" in diet_flags and "OMNI" in food_flags:
+        # For VEG diets, accept foods that have VEG flag, regardless of OMNI flag
+        if "VEG" in diet_flags and "VEG" not in food_flags:
             return False
+        # For PESC diets, reject foods that have OMNI flag
         if "PESC" in diet_flags and "OMNI" in food_flags:
             return False
+        # For GF diets, reject foods that don't have GF flag
         if "GF" in diet_flags and "GF" not in food_flags:
             return False
         return True
@@ -105,10 +123,12 @@ class FoodDB:
                 price = round(self.items[name].price * (grams / 100.0), 2)
             # Add translated name to shopping list
             translated_name = self.get_translated_food_name(name, lang)
+            # Enhanced rounding to nearest 10g for practical shopping
+            rounded_grams = round(grams / 10.0) * 10
             out.append({
                 "name": name,
                 "name_translated": translated_name,
-                "grams": round(grams, 0),
+                "grams": rounded_grams,
                 "price_est": price
             })
         return out

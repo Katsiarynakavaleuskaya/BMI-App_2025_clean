@@ -26,7 +26,7 @@ class OFFAdapter(BaseAdapter):
         """
         RU: Инициализировать адаптер OFF.
         EN: Initialize OFF adapter.
-        
+
         Args:
             csv_path: Path to OFF CSV file
             locale: Locale of the data

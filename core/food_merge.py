@@ -3,10 +3,18 @@ Food Data Merge Logic
 
 RU: Логика мерджа данных о продуктах.
 EN: Food data merge logic.
+
+This module implements a unified pipeline to merge USDA, CIQUAL, FAO/INFOODS, and OpenFoodFacts data
+with conflict resolution strategies and priority-based merging.
+
+Priority for micronutrients: USDA > CIQUAL > INFOODS > OFF (where values are available)
+Macro nutrients: median of all available values
+Price/flags: from OFF or manual sources
 """
 
 from __future__ import annotations
 
+import os
 from collections import defaultdict
 from datetime import date
 from statistics import median
@@ -17,16 +25,52 @@ from .food_sources.base import FoodRecord
 # Micro nutrients list
 MICROS = ["Fe_mg", "Ca_mg", "VitD_IU", "B12_ug", "Folate_ug", "Iodine_ug", "K_mg", "Mg_mg"]
 
+# Default source priority for micronutrients (highest → lowest)
+# Exported for tests and documentation.
+PRIORITY = ["USDA", "CIQUAL", "INFOODS", "OFF"]
+
+def _priority():
+    # Start from default priority, allow override via ENV
+    base_str = os.getenv("FOOD_MICRO_PRIORITY_BASE", ",".join(PRIORITY))
+    base = base_str.split(",")
+    # расширения по флагам
+    if os.getenv("FOOD_ENABLE_CIQUAL") == "1":
+        base.insert(1, "CIQUAL")           # после USDA
+    if os.getenv("FOOD_ENABLE_INFOODS") == "1":
+        base.append("INFOODS")             # ниже CIQUAL/USDA
+    # убираем дубли, сохраняя порядок
+    seen, out = set(), []
+    for s in base:
+        s = s.strip()
+        if s and s not in seen:
+            seen.add(s); out.append(s)
+    return out
+
+def micro_pick(rows: List[FoodRecord], key: str) -> float:
+    """
+    Pick micronutrient value using source priority. Falls back to median across
+    all sources if none in the priority list provide a value.
+    """
+    prio = _priority()
+    for src in prio:
+        vals = [getattr(r, key, None) for r in rows
+                if getattr(r, key, None) is not None and getattr(r, "source", None) == src]
+        vals = [v for v in vals if isinstance(v, (int, float)) and v >= 0]
+        if vals:
+            return float(median(vals))
+    vals = [getattr(r, key, None) for r in rows if getattr(r, key, None) is not None]
+    vals = [v for v in vals if isinstance(v, (int, float)) and v >= 0]
+    return float(median(vals or [0.0]))
 
 def _merge_values(values: List[float], strategy: str = "median") -> float:
     """
     RU: Объединить значения по стратегии.
     EN: Merge values by strategy.
-    
+
     Args:
         values: List of values to merge
         strategy: Merge strategy ("median" or "first")
-        
+
     Returns:
         Merged value
     """
@@ -37,15 +81,14 @@ def _merge_values(values: List[float], strategy: str = "median") -> float:
         return float(median(vals))
     return float(vals[0])
 
-
 def merge_records(streams: List[Iterable[FoodRecord]]) -> List[Dict]:
     """
     RU: Объединить записи из нескольких источников.
     EN: Merge records from multiple sources.
-    
+
     Args:
         streams: List of iterables with FoodRecord objects
-        
+
     Returns:
         List of merged food records as dictionaries
     """
@@ -60,26 +103,18 @@ def merge_records(streams: List[Iterable[FoodRecord]]) -> List[Dict]:
 
     for name, rows in bucket.items():
         # Merge macronutrients using median
-        kcal = _merge_values([r.kcal for r in rows])
-        protein = _merge_values([r.protein_g for r in rows])
-        fat = _merge_values([r.fat_g for r in rows])
-        carbs = _merge_values([r.carbs_g for r in rows])
-        fiber = _merge_values([r.fiber_g for r in rows])
+        def macro_pick(key: str) -> float:
+            vals = [getattr(r, key, 0.0) for r in rows if getattr(r, key, None) is not None]
+            vals = [v for v in vals if v >= 0]
+            return float(median(vals or [0.0]))
 
-        # Priority for micronutrients: if USDA present, take from USDA, otherwise median
-        def micro_pick(key: str) -> float:
-            # Get values from USDA source first
-            usda_vals = [getattr(r, key) for r in rows if r.source == "USDA"]
-            usda_vals = [v for v in usda_vals if v is not None and v >= 0]
+        kcal = macro_pick("kcal")
+        protein = macro_pick("protein_g")
+        fat = macro_pick("fat_g")
+        carbs = macro_pick("carbs_g")
+        fiber = macro_pick("fiber_g")
 
-            if usda_vals:
-                # If we have USDA values, use median of USDA values
-                return _merge_values(usda_vals, "median")
-
-            # Otherwise, use median of all values
-            all_vals = [getattr(r, key) for r in rows]
-            all_vals = [v for v in all_vals if v is not None and v >= 0]
-            return _merge_values(all_vals, "median")
+        # Priority for micronutrients: dynamic based on ENV flags
 
         # Collect all flags
         all_flags = set()
@@ -99,7 +134,7 @@ def merge_records(streams: List[Iterable[FoodRecord]]) -> List[Dict]:
             "fat_g": round(fat, 2),
             "carbs_g": round(carbs, 2),
             "fiber_g": round(fiber, 2),
-            **{k: round(micro_pick(k), 3) for k in MICROS},
+            **{k: round(micro_pick(rows, k), 3) for k in MICROS},
             "flags": list(sorted(all_flags)),
             "price": 0.0,  # Can be populated from OFF later
             "source": "MERGED(" + ",".join(sources) + ")",
@@ -113,15 +148,14 @@ def merge_records(streams: List[Iterable[FoodRecord]]) -> List[Dict]:
 
     return merged
 
-
 def _classify_food_group(record: Dict) -> str:
     """
     RU: Классифицировать продукт по группе на основе профиля макронутриентов.
     EN: Classify food by group based on macronutrient profile.
-    
+
     Args:
         record: Food record dictionary
-        
+
     Returns:
         Food group classification
     """

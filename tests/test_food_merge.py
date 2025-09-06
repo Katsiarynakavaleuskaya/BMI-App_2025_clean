@@ -10,7 +10,12 @@ from unittest.mock import Mock
 
 import pytest
 
-from core.food_merge import FoodRecord, _classify_food_group, _merge_values, merge_records
+from core.food_merge import (
+    FoodRecord,
+    _classify_food_group,
+    _merge_values,
+    merge_records,
+)
 
 
 def test_merge_values():

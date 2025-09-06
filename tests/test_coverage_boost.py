@@ -8,8 +8,15 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from core.menu_engine import analyze_nutrient_gaps, make_daily_menu, make_weekly_menu
-from core.recommendations import build_nutrition_targets, score_nutrient_coverage
+from core.menu_engine import (
+    analyze_nutrient_gaps,
+    make_daily_menu,
+    make_weekly_menu,
+)
+from core.recommendations import (
+    build_nutrition_targets,
+    score_nutrient_coverage,
+)
 from core.rules_who import WHO_MACRONUTRIENT_RANGES, WHO_MICRONUTRIENT_RDA
 from core.targets import UserProfile
 

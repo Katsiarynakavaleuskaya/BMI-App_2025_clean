@@ -42,3 +42,18 @@ tunnel.out
 # Mypy and Ruff cache
 .mypy_cache/
 .ruff_cache/
+
+# External data files
+external/*.csv
+data/external/*.csv
+
+# Reports and coverage (keep out of VCS)
+.bandit/
+bandit-report.json
+htmlcov/
+coverage.xml
+.coverage
+*.pyc
+__pycache__/
+.env
+.env.*

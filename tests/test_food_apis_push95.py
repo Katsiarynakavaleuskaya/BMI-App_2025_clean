@@ -36,7 +36,11 @@ def test_usda_client_parse_exception_branch():
 
 
 def test_usda_common_foods_database():
-    from core.food_apis.usda_client import USDAClient, USDAFoodItem, get_common_foods_database
+    from core.food_apis.usda_client import (
+        USDAClient,
+        USDAFoodItem,
+        get_common_foods_database,
+    )
 
     async def _search(self, q: str, page_size: int = 5):
         return [USDAFoodItem(
@@ -84,7 +88,10 @@ def test_unified_db_common_cache_error_and_save_error(tmp_path: Path):
 
 
 def test_unified_search_foods_unified(tmp_path: Path):
-    from core.food_apis.unified_db import UnifiedFoodDatabase, search_foods_unified
+    from core.food_apis.unified_db import (
+        UnifiedFoodDatabase,
+        search_foods_unified,
+    )
 
     async def _get_db():
         class _DB:

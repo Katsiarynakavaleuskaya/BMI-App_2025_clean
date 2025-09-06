@@ -12,6 +12,10 @@ omit =
     */test_visualization.py
     bmi_visualization.py
     example_nutrition_api.py
+    e2e_check_week_plan.py
+    test_new_router.py
+    test_new_sources.py
+    test_router.py
     debug_*.py
     reproduce_issue.py
     test_patch_verification.py

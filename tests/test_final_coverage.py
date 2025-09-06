@@ -390,7 +390,7 @@ class TestFinalCoverage:
             mock_llm.get_provider.return_value = mock_provider
 
             with patch.dict(os.environ, {'FEATURE_INSIGHT': '1'}):
-                response = client.post("/insight", json={"text": "test"})
+                response = client.post("/insight", json={"text": "test"}, headers={"X-API-Key": "test_key"})
                 assert response.status_code == 200
                 data = response.json()
                 assert "insight" in data
@@ -403,7 +403,7 @@ class TestFinalCoverage:
                 mock_llm.get_provider.return_value = mock_provider
 
                 with patch.dict(os.environ, {'FEATURE_INSIGHT': value}):
-                    response = client.post("/insight", json={"text": "test"})
+                    response = client.post("/insight", json={"text": "test"}, headers={"X-API-Key": "test_key"})
                     assert response.status_code == 200
 
     def test_app_api_v1_endpoints_detailed(self):

@@ -49,3 +49,15 @@ for _name in (
         globals()[_name] = getattr(_mod, _name)
     except Exception:
         pass
+
+# Include BMI Pro router here (avoid import-order issues inside app.py)
+try:
+    from fastapi import Depends  # type: ignore
+
+    from .routers import bmi_pro as _bmi_pro  # type: ignore
+    _get_api_key = getattr(_mod, "get_api_key")
+    app.include_router(_bmi_pro.router, dependencies=[Depends(_get_api_key)])
+except Exception:
+    # Keep app importable even if router import fails in some environments
+    import logging as _logging
+    _logging.getLogger(__name__).warning("BMI Pro router not available")
